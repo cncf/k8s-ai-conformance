@@ -5,12 +5,15 @@ on:
     paths:
       - 'docs/AIConformance-*.yaml'
       - 'docs/AIConformance-*.md'
+      - 'v*/*/PRODUCT.yaml'
+      - 'v*/*/PRODUCT.md'
       - 'scripts/yaml-to-markdown.go'
   push:
     branches:
       - main
     paths:
       - 'docs/AIConformance-*.yaml'
+      - 'v*/*/PRODUCT.yaml'
       - 'scripts/yaml-to-markdown.go'
   workflow_dispatch:
 
@@ -34,16 +37,19 @@ jobs:
 
       - name: Check for differences
         run: |
-          if git diff --quiet docs/*.md; then
-            echo "✅ Markdown files are up to date"
+          # Check both docs/ and version directories
+          changed_files=$(git diff --name-only '*.md' || true)
+
+          if [ -z "$changed_files" ]; then
+            echo "✅ All Markdown files are up to date"
           else
-            echo "❌ Markdown files are out of sync with YAML templates"
+            echo "❌ Markdown files are out of sync with YAML sources"
             echo ""
             echo "The following files have differences:"
-            git diff --name-only docs/*.md
+            echo "$changed_files"
             echo ""
             echo "Diff:"
-            git diff docs/*.md
+            git diff '*.md'
             echo ""
             echo "Please regenerate the Markdown files by running:"
             echo "  go run scripts/yaml-to-markdown.go"
@@ -54,11 +60,13 @@ jobs:
 
       - name: Check for untracked Markdown files
         run: |
-          untracked=$(git ls-files --others --exclude-standard docs/*.md 2>/dev/null || true)
+          # Check for any new .md files that should be committed
+          untracked=$(git ls-files --others --exclude-standard '*.md' 2>/dev/null || true)
+
           if [ -n "$untracked" ]; then
             echo "❌ New Markdown files were generated but not committed:"
             echo "$untracked"
             echo ""
-            echo "Please commit these files."
+            echo "Please run 'go run scripts/yaml-to-markdown.go' and commit the new files."
             exit 1
           fi

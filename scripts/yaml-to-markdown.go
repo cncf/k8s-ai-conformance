@@ -9,13 +9,37 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+// Evidence can be either a string or a list of strings in YAML
+type Evidence []string
+
+func (e *Evidence) UnmarshalYAML(value *yaml.Node) error {
+	// Try to unmarshal as a string first
+	var str string
+	if err := value.Decode(&str); err == nil {
+		if str != "" && str != "N/A" {
+			*e = []string{str}
+		} else {
+			*e = []string{}
+		}
+		return nil
+	}
+
+	// Otherwise unmarshal as a list
+	var list []string
+	if err := value.Decode(&list); err != nil {
+		return err
+	}
+	*e = list
+	return nil
+}
+
 // Requirement represents a single conformance requirement
 type Requirement struct {
 	ID          string   `yaml:"id"`
 	Description string   `yaml:"description"`
 	Level       string   `yaml:"level"`
 	Status      string   `yaml:"status"`
-	Evidence    []string `yaml:"evidence"`
+	Evidence    Evidence `yaml:"evidence"`
 	Notes       string   `yaml:"notes"`
 }
 
@@ -60,8 +84,8 @@ type Category struct {
 
 func main() {
 	if len(os.Args) < 2 {
-		// Default: process all YAML files in docs/
-		processDocsDirectory()
+		// Default: process all files
+		processAllFiles()
 		return
 	}
 
@@ -73,26 +97,52 @@ func main() {
 	}
 }
 
-func processDocsDirectory() {
-	// Find the docs directory relative to the script location
-	docsDir := "docs"
-	if _, err := os.Stat(docsDir); os.IsNotExist(err) {
-		// Try from the root of the repo
-		docsDir = filepath.Join("..", "docs")
-	}
+func processAllFiles() {
+	// Process docs/ directory (templates)
+	processDirectory("docs", "AIConformance-*.yaml")
 
-	entries, err := os.ReadDir(docsDir)
+	// Process version directories (v1.33, v1.34, etc.)
+	entries, err := os.ReadDir(".")
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error reading docs directory: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error reading current directory: %v\n", err)
 		os.Exit(1)
 	}
 
 	for _, entry := range entries {
-		if !entry.IsDir() && strings.HasSuffix(entry.Name(), ".yaml") {
-			inputFile := filepath.Join(docsDir, entry.Name())
-			if err := convertFile(inputFile); err != nil {
-				fmt.Fprintf(os.Stderr, "Error processing %s: %v\n", inputFile, err)
-				os.Exit(1)
+		if entry.IsDir() && strings.HasPrefix(entry.Name(), "v") {
+			processVersionDirectory(entry.Name())
+		}
+	}
+}
+
+func processDirectory(dir, pattern string) {
+	matches, err := filepath.Glob(filepath.Join(dir, pattern))
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error globbing %s: %v\n", dir, err)
+		return
+	}
+
+	for _, match := range matches {
+		if err := convertFile(match); err != nil {
+			fmt.Fprintf(os.Stderr, "Error processing %s: %v\n", match, err)
+		}
+	}
+}
+
+func processVersionDirectory(versionDir string) {
+	entries, err := os.ReadDir(versionDir)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error reading %s: %v\n", versionDir, err)
+		return
+	}
+
+	for _, entry := range entries {
+		if entry.IsDir() {
+			productFile := filepath.Join(versionDir, entry.Name(), "PRODUCT.yaml")
+			if _, err := os.Stat(productFile); err == nil {
+				if err := convertFile(productFile); err != nil {
+					fmt.Fprintf(os.Stderr, "Error processing %s: %v\n", productFile, err)
+				}
 			}
 		}
 	}
@@ -111,8 +161,16 @@ func convertFile(inputFile string) error {
 		return fmt.Errorf("parsing YAML: %w", err)
 	}
 
+	// Determine if this is a template or a product submission
+	isTemplate := strings.Contains(inputFile, "docs/") || isPlaceholder(checklist.Metadata.PlatformName)
+
 	// Generate Markdown
-	markdown := generateMarkdown(checklist)
+	var markdown string
+	if isTemplate {
+		markdown = generateTemplateMarkdown(checklist)
+	} else {
+		markdown = generateProductMarkdown(checklist)
+	}
 
 	// Write output file
 	outputFile := strings.TrimSuffix(inputFile, ".yaml") + ".md"
@@ -124,7 +182,53 @@ func convertFile(inputFile string) error {
 	return nil
 }
 
-func generateMarkdown(checklist ConformanceChecklist) string {
+func isPlaceholder(value string) bool {
+	return strings.HasPrefix(value, "[") && strings.HasSuffix(value, "]")
+}
+
+func buildCategories(spec Spec) []Category {
+	return []Category{
+		{
+			Name:         "Accelerators",
+			Anchor:       "accelerators",
+			Icon:         "🚀",
+			Requirements: spec.Accelerators,
+		},
+		{
+			Name:         "Networking",
+			Anchor:       "networking",
+			Icon:         "🌐",
+			Requirements: spec.Networking,
+		},
+		{
+			Name:         "Scheduling & Orchestration",
+			Anchor:       "scheduling--orchestration",
+			Icon:         "📅",
+			Requirements: spec.SchedulingOrchestration,
+		},
+		{
+			Name:         "Observability",
+			Anchor:       "observability",
+			Icon:         "📊",
+			Requirements: spec.Observability,
+		},
+		{
+			Name:         "Security",
+			Anchor:       "security",
+			Icon:         "🔒",
+			Requirements: spec.Security,
+		},
+		{
+			Name:         "Operator Support",
+			Anchor:       "operator-support",
+			Icon:         "⚙️",
+			Requirements: spec.Operator,
+		},
+	}
+}
+
+// generateTemplateMarkdown generates markdown for template files (docs/)
+func generateTemplateMarkdown(checklist ConformanceChecklist) string {
 	var sb strings.Builder
 	version := checklist.Metadata.KubernetesVersion
 
@@ -135,45 +239,7 @@ func generateMarkdown(checklist ConformanceChecklist) string {
 	sb.WriteString("> This document defines the conformance requirements for certifying a Kubernetes platform\n")
 	sb.WriteString("> as capable of reliably running AI and machine learning workloads.\n\n")
 
-	// Build categories
-	categories := []Category{
-		{
-			Name:         "Accelerators",
-			Anchor:       "accelerators",
-			Icon:         "🚀",
-			Requirements: checklist.Spec.Accelerators,
-		},
-		{
-			Name:         "Networking",
-			Anchor:       "networking",
-			Icon:         "🌐",
-			Requirements: checklist.Spec.Networking,
-		},
-		{
-			Name:         "Scheduling & Orchestration",
-			Anchor:       "scheduling--orchestration",
-			Icon:         "📅",
-			Requirements: checklist.Spec.SchedulingOrchestration,
-		},
-		{
-			Name:         "Observability",
-			Anchor:       "observability",
-			Icon:         "📊",
-			Requirements: checklist.Spec.Observability,
-		},
-		{
-			Name:         "Security",
-			Anchor:       "security",
-			Icon:         "🔒",
-			Requirements: checklist.Spec.Security,
-		},
-		{
-			Name:         "Operator Support",
-			Anchor:       "operator-support",
-			Icon:         "⚙️",
-			Requirements: checklist.Spec.Operator,
-		},
-	}
+	categories := buildCategories(checklist.Spec)
 
 	// Count requirements
 	mustCount, shouldCount := countRequirements(categories)
@@ -181,7 +247,7 @@ func generateMarkdown(checklist ConformanceChecklist) string {
 	// Summary box
 	sb.WriteString("---\n\n")
 	sb.WriteString("## Overview\n\n")
-	sb.WriteString(fmt.Sprintf("| Kubernetes Version | Total Requirements | Mandatory (MUST) | Recommended (SHOULD) |\n"))
+	sb.WriteString("| Kubernetes Version | Total Requirements | Mandatory (MUST) | Recommended (SHOULD) |\n")
 	sb.WriteString("|:------------------:|:------------------:|:----------------:|:--------------------:|\n")
 	sb.WriteString(fmt.Sprintf("| **%s** | %d | %d | %d |\n\n",
 		version, mustCount+shouldCount, mustCount, shouldCount))
@@ -219,7 +285,7 @@ func generateMarkdown(checklist ConformanceChecklist) string {
 
 		// Requirements
 		for i, req := range cat.Requirements {
-			sb.WriteString(formatRequirement(req, i+1))
+			sb.WriteString(formatTemplateRequirement(req, i+1))
 		}
 
 		sb.WriteString("---\n\n")
@@ -244,7 +310,99 @@ func generateMarkdown(checklist ConformanceChecklist) string {
 	return sb.String()
 }
 
-func formatRequirement(req Requirement, num int) string {
+// generateProductMarkdown generates markdown for product submissions (v*/)
+func generateProductMarkdown(checklist ConformanceChecklist) string {
+	var sb strings.Builder
+	meta := checklist.Metadata
+
+	// Header with platform name
+	sb.WriteString(fmt.Sprintf("# %s — AI Conformance Report\n\n", meta.PlatformName))
+
+	// Platform info card
+	sb.WriteString("## Platform Information\n\n")
+	sb.WriteString("| | |\n")
+	sb.WriteString("|:--|:--|\n")
+	sb.WriteString(fmt.Sprintf("| **Vendor** | %s |\n", meta.VendorName))
+	sb.WriteString(fmt.Sprintf("| **Platform** | %s |\n", meta.PlatformName))
+	sb.WriteString(fmt.Sprintf("| **Platform Version** | %s |\n", meta.PlatformVersion))
+	sb.WriteString(fmt.Sprintf("| **Kubernetes Version** | %s |\n", meta.KubernetesVersion))
+	if meta.WebsiteURL != "" && !isPlaceholder(meta.WebsiteURL) {
+		sb.WriteString(fmt.Sprintf("| **Website** | [%s](%s) |\n", meta.WebsiteURL, meta.WebsiteURL))
+	}
+	if meta.DocumentationURL != "" && !isPlaceholder(meta.DocumentationURL) {
+		sb.WriteString(fmt.Sprintf("| **Documentation** | [Link](%s) |\n", meta.DocumentationURL))
+	}
+	sb.WriteString("\n")
+
+	// Description
+	if meta.Description != "" && !isPlaceholder(meta.Description) {
+		sb.WriteString(fmt.Sprintf("> %s\n\n", meta.Description))
+	}
+
+	categories := buildCategories(checklist.Spec)
+
+	// Compliance summary
+	sb.WriteString("---\n\n")
+	sb.WriteString("## Compliance Summary\n\n")
+
+	implemented, notImplemented, partial, na := countStatuses(categories)
+	total := implemented + notImplemented + partial + na
+
+	sb.WriteString("| Status | Count |\n")
+	sb.WriteString("|:-------|:-----:|\n")
+	sb.WriteString(fmt.Sprintf("| ✅ Implemented | %d |\n", implemented))
+	if partial > 0 {
+		sb.WriteString(fmt.Sprintf("| 🟡 Partially Implemented | %d |\n", partial))
+	}
+	if notImplemented > 0 {
+		sb.WriteString(fmt.Sprintf("| ❌ Not Implemented | %d |\n", notImplemented))
+	}
+	if na > 0 {
+		sb.WriteString(fmt.Sprintf("| ⚪ N/A | %d |\n", na))
+	}
+	sb.WriteString(fmt.Sprintf("| **Total** | **%d** |\n\n", total))
+
+	// Quick status table
+	sb.WriteString("### Requirements at a Glance\n\n")
+	sb.WriteString("| Category | Requirement | Level | Status |\n")
+	sb.WriteString("|:---------|:------------|:-----:|:------:|\n")
+	for _, cat := range categories {
+		for _, req := range cat.Requirements {
+			statusIcon := getStatusIcon(req.Status)
+			levelBadge := "MUST"
+			if req.Level == "SHOULD" {
+				levelBadge = "SHOULD"
+			}
+			sb.WriteString(fmt.Sprintf("| %s | %s | %s | %s |\n",
+				cat.Name, formatID(req.ID), levelBadge, statusIcon))
+		}
+	}
+	sb.WriteString("\n")
+
+	// Detailed requirements
+	sb.WriteString("---\n\n")
+	sb.WriteString("## Detailed Requirements\n\n")
+
+	for _, cat := range categories {
+		if len(cat.Requirements) == 0 {
+			continue
+		}
+
+		sb.WriteString(fmt.Sprintf("### %s %s\n\n", cat.Icon, cat.Name))
+
+		for _, req := range cat.Requirements {
+			sb.WriteString(formatProductRequirement(req))
+		}
+	}
+
+	// Footer
+	sb.WriteString("---\n\n")
+	sb.WriteString("*Generated from PRODUCT.yaml*\n")
+
+	return sb.String()
+}
+
+func formatTemplateRequirement(req Requirement, num int) string {
 	var sb strings.Builder
 
 	// Requirement header with level badge
@@ -275,6 +433,80 @@ func formatRequirement(req Requirement, num int) string {
 	sb.WriteString("</details>\n\n")
 
 	return sb.String()
+}
+
+func formatProductRequirement(req Requirement) string {
+	var sb strings.Builder
+
+	// Status icon and level
+	statusIcon := getStatusIcon(req.Status)
+	levelBadge := "🔴 MUST"
+	if req.Level == "SHOULD" {
+		levelBadge = "🟡 SHOULD"
+	}
+
+	displayID := formatID(req.ID)
+
+	sb.WriteString(fmt.Sprintf("#### %s %s\n\n", statusIcon, displayID))
+	sb.WriteString(fmt.Sprintf("**Level:** %s | **Status:** %s\n\n", levelBadge, req.Status))
+
+	// Description
+	sb.WriteString(fmt.Sprintf("> %s\n\n", req.Description))
+
+	// Evidence
+	if len(req.Evidence) > 0 && hasValidEvidence(req.Evidence) {
+		sb.WriteString("**Evidence:**\n\n")
+		for _, e := range req.Evidence {
+			if e != "" {
+				sb.WriteString(fmt.Sprintf("- [%s](%s)\n", truncateURL(e), e))
+			}
+		}
+		sb.WriteString("\n")
+	}
+
+	// Notes
+	if req.Notes != "" {
+		sb.WriteString("**Notes:**\n\n")
+		sb.WriteString(fmt.Sprintf("> %s\n\n", req.Notes))
+	}
+
+	return sb.String()
+}
+
+func getStatusIcon(status string) string {
+	switch strings.ToLower(status) {
+	case "implemented":
+		return "✅"
+	case "not implemented":
+		return "❌"
+	case "partially implemented":
+		return "🟡"
+	case "n/a":
+		return "⚪"
+	default:
+		return "⬜"
+	}
+}
+
+func hasValidEvidence(evidence []string) bool {
+	for _, e := range evidence {
+		if e != "" {
+			return true
+		}
+	}
+	return false
+}
+
+func truncateURL(url string) string {
+	// Remove protocol for display
+	display := strings.TrimPrefix(url, "https://")
+	display = strings.TrimPrefix(display, "http://")
+
+	// Truncate if too long
+	if len(display) > 60 {
+		return display[:57] + "..."
+	}
+	return display
 }
 
 func formatID(id string) string {
@@ -313,6 +545,24 @@ func countCategoryRequirements(reqs []Requirement) (must, should int) {
 			must++
 		} else {
 			should++
+		}
+	}
+	return
+}
+
+func countStatuses(categories []Category) (implemented, notImplemented, partial, na int) {
+	for _, cat := range categories {
+		for _, req := range cat.Requirements {
+			switch strings.ToLower(req.Status) {
+			case "implemented":
+				implemented++
+			case "not implemented":
+				notImplemented++
+			case "partially implemented":
+				partial++
+			case "n/a":
+				na++
+			}
 		}
 	}
 	return
