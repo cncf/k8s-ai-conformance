@@ -67,10 +67,21 @@ Most submissions are a completed checklist plus links to public evidence—think
 
 #### What you'll need to submit
 
-- A completed conformance checklist (YAML file)
+- A completed conformance checklist (`PRODUCT.yaml`)
+- A generated Markdown report (`PRODUCT.md`) — see below
 - Public documentation showing how your platform meets each requirement
 - Your product logo in vector format (SVG, EPS, or AI)
 - Proof of Kubernetes conformance
+
+#### Generating PRODUCT.md
+
+After completing your `PRODUCT.yaml`, generate the human-readable Markdown report:
+
+```bash
+go run scripts/yaml-to-markdown.go path/to/your/PRODUCT.yaml
+```
+
+This creates a `PRODUCT.md` alongside your YAML file. Both files must be included in your PR. The CI will fail if the Markdown is missing or out of sync with the YAML.
 
 **Note:** Today, certification is based on self-assessment. Automated conformance tests are planned for 2026.
 
@@ -105,10 +116,11 @@ The program is a community-led effort to establish a vendor-neutral baseline for
 flowchart TD
     A[Platform must be Kubernetes Conformant] --> B[Complete self-assessment checklist]
     B --> C[Gather evidence and documentation]
-    C --> D[Submit pull request]
-    D --> E[CNCF reviews submission]
-    E -->|Approved| F[Certified for 1 year]
-    E -->|Needs changes| B
+    C --> D[Generate PRODUCT.md]
+    D --> E[Submit pull request]
+    E --> F[CNCF reviews submission]
+    F -->|Approved| G[Certified for 1 year]
+    F -->|Needs changes| B
 ```
 
 **Important notes:**
@@ -139,9 +151,11 @@ For the full and up-to-date requirements, see the [conformance versions](https:/
 
 Pick the one that matches your Kubernetes version:
 
-- [AIConformance-1.35.yaml](docs/AIConformance-1.35.yaml) (latest)
-- [AIConformance-1.34.yaml](docs/AIConformance-1.34.yaml)
-- [AIConformance-1.33.yaml](docs/AIConformance-1.33.yaml)
+| Version | Template (YAML) | Readable (Markdown) |
+|:-------:|:----------------|:--------------------|
+| **1.35** (latest) | [AIConformance-1.35.yaml](docs/AIConformance-1.35.yaml) | [AIConformance-1.35.md](docs/AIConformance-1.35.md) |
+| 1.34 | [AIConformance-1.34.yaml](docs/AIConformance-1.34.yaml) | [AIConformance-1.34.md](docs/AIConformance-1.34.md) |
+| 1.33 | [AIConformance-1.33.yaml](docs/AIConformance-1.33.yaml) | [AIConformance-1.33.md](docs/AIConformance-1.33.md) |
 
 ### Related Projects
 
