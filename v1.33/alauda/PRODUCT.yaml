@@ -16,7 +16,7 @@ spec:
   accelerators:
     - id: dra_support
       description: "Dynamic Resource Allocation (DRA) APIs enable more flexible and fine-grained resource requests beyond simple counts."
-      level: MUST
+      level: SHOULD
       status: "Implemented"
       evidence:
         - "https://cloud.alauda.io/knowledge/solutions/How_to_Use_Alauda_Build_of_NVIDIA_DRA_Driver_for_GPUs.html"
@@ -49,7 +49,7 @@ spec:
       level: MUST
       status: "Implemented"
       evidence:
-        - "https://docs.alauda.cn/container_platform/4.2/en/developer/building_application/operation_maintaining/add_hpa.html"
+        - "https://docs.alauda.io/container_platform/4.2/en/developer/building_application/operation_maintaining/add_hpa.html"
       notes: ""
   observability:
     - id: accelerator_metrics
