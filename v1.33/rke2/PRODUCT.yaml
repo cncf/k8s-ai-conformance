@@ -18,17 +18,18 @@ spec:
     - id: dra_support
       description: "Support Dynamic Resource Allocation (DRA) APIs to enable more flexible and fine-grained resource requests beyond simple counts."
       level: SHOULD
-      status: "Implemented"   # Implemented, Not Implemented, Partially Implemented, N/A
-      evidence: 
-        - https://docs.rke2.io/reference/ai_conformance#support-dynamic-resource-allocation-dra] # List of URLs or references to documentation/test results
-      notes: ""    # Must provide a justification when status is N/A
+      status: "Implemented" # Implemented, Not Implemented, Partially Implemented, N/A
+      evidence:
+        - https://documentation.suse.com/cloudnative/rke2/latest/en/reference/ai_conformance.html#_support_dynamic_resource_allocation_dra # List of URLs or references to documentation/test results
+      notes: "" # Must provide a justification when status is N/A
   networking:
     - id: ai_inference
       description: "Support the Kubernetes Gateway API with an implementation for advanced traffic management for inference services, which enables capabilities like weighted traffic splitting, header-based routing (for OpenAI protocol headers), and optional integration with service meshes."
       level: MUST
       status: "Implemented"
       evidence:
-        - https://docs.rke2.io/reference/ai_conformance#support-the-gateway-api, https://raw.githubusercontent.com/SUSE/suse-ai-stack/refs/heads/main/docs/cncf-ai-conformance/v1.33/SUSE-AI/specs/ai_inference.md
+        - https://documentation.suse.com/cloudnative/rke2/latest/en/reference/ai_conformance.html#_support_the_gateway_api
+        - https://raw.githubusercontent.com/SUSE/suse-ai-stack/refs/heads/main/docs/cncf-ai-conformance/v1.33/SUSE-AI/specs/ai_inference.md
       notes: ""
   schedulingOrchestration:
     - id: gang_scheduling
@@ -36,7 +37,7 @@ spec:
       level: MUST
       status: "Implemented"
       evidence:
-        - https://docs.rke2.io/reference/ai_conformance#gang-scheduling
+        - https://documentation.suse.com/cloudnative/rke2/latest/en/reference/ai_conformance.html#_gang_scheduling
         - https://raw.githubusercontent.com/SUSE/suse-ai-stack/refs/heads/main/docs/cncf-ai-conformance/v1.33/SUSE-AI/specs/gang_scheduling.md
       notes: ""
     - id: cluster_autoscaling
@@ -44,14 +45,15 @@ spec:
       level: MUST
       status: "Implemented"
       evidence:
-        - https://docs.rke2.io/reference/ai_conformance#cluster-autoscaler
+        - https://documentation.suse.com/cloudnative/rke2/latest/en/reference/ai_conformance.html#_cluster_autoscaler
       notes: "The platform does not provide an autoscaler. It can be used in and out of environments where autoscaling it possible. The platform is tested to work with Kubernetes autoscaler."
     - id: pod_autoscaling
       description: "If the platform supports the HorizontalPodAutoscaler, it must function correctly for pods utilizing accelerators. This includes the ability to scale these Pods based on custom metrics relevant to AI/ML workloads."
       level: MUST
       status: "Implemented"
       evidence:
-        - https://docs.rke2.io/reference/ai_conformance#horizontal-pod-autoscaler, https://raw.githubusercontent.com/SUSE/suse-ai-stack/refs/heads/main/docs/cncf-ai-conformance/v1.33/SUSE-AI/specs/pod_autoscaling.md
+        - https://documentation.suse.com/cloudnative/rke2/latest/en/reference/ai_conformance.html#_horizontal_pod_autoscaler
+        - https://raw.githubusercontent.com/SUSE/suse-ai-stack/refs/heads/main/docs/cncf-ai-conformance/v1.33/SUSE-AI/specs/pod_autoscaling.md
       notes: ""
   observability:
     - id: accelerator_metrics
@@ -59,6 +61,7 @@ spec:
       level: MUST
       status: "Implemented"
       evidence:
+        - https://documentation.suse.com/cloudnative/rke2/latest/en/reference/ai_conformance.html#_accelerator_performance_metrics
         - https://documentation.suse.com/suse-ai/1.0/html/AI-deployment-intro/index.html#observability-installing
         - https://documentation.suse.com/suse-ai/1.0/html/AI-monitoring/index.html#ai-monitoring-gpu
       notes: "Accelerator metrics are available through SUSE AI."
@@ -67,7 +70,9 @@ spec:
       level: MUST
       status: "Implemented"
       evidence:
-        - https://documentation.suse.com/suse-ai/1.0/html/AI-deployment-intro/index.html#observability-installing,https://documentation.suse.com/suse-ai/1.0/html/AI-monitoring/index.html
+        - https://documentation.suse.com/cloudnative/rke2/latest/en/reference/ai_conformance.html#_ai_job_inference_service_metrics
+        - https://documentation.suse.com/suse-ai/1.0/html/AI-deployment-intro/index.html#observability-installing
+        - https://documentation.suse.com/suse-ai/1.0/html/AI-monitoring/index.html
       notes: "Service metrics are available through SUSE AI."
   security:
     - id: secure_accelerator_access
@@ -75,7 +80,7 @@ spec:
       level: MUST
       status: "Implemented"
       evidence:
-        - https://docs.rke2.io/reference/ai_conformance#secure-accelerator-access
+        - https://documentation.suse.com/cloudnative/rke2/latest/en/reference/ai_conformance.html#_secure_accelerator_access
       notes: ""
   operator:
     - id: robust_controller
@@ -83,6 +88,6 @@ spec:
       level: MUST
       status: "Implemented"
       evidence:
-        - https://docs.rke2.io/reference/ai_conformance#robust-crd-and-controller-operation
+        - https://documentation.suse.com/cloudnative/rke2/latest/en/reference/ai_conformance.html#_robust_crd_and_controller_operation
         - https://raw.githubusercontent.com/SUSE/suse-ai-stack/refs/heads/main/docs/cncf-ai-conformance/v1.33/SUSE-AI/specs/robust_controller.md
       notes: ""
