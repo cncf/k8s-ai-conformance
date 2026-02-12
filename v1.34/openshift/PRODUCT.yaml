@@ -1,0 +1,89 @@
+# Kubernetes AI Conformance Checklist
+# Notes: This checklist is based on the Kubernetes AI Conformance document.
+# Participants should fill in the 'status', 'evidence', and 'notes' fields for each requirement.
+
+metadata:
+  kubernetesVersion: v1.34
+  platformName: "OpenShift Container Platform"
+  platformVersion: "4.21"
+  vendorName: "Red Hat"
+  websiteUrl: "https://www.redhat.com/en/technologies/cloud-computing/openshift"
+  documentationUrl: "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21"
+  productLogoUrl: "https://www.redhat.com/rhdc/managed-files/Logo-Red_Hat-OpenShift-A-Standard-RGB.svg"
+  repoUrl: "https://github.com/openshift"
+  contactEmailAddress: "harpatil@redhat.com"
+  k8sConformanceUrl: "https://github.com/cncf/k8s-conformance/tree/master/v1.34/openshift"
+  description: "Red Hat OpenShift Container Platform is an enterprise-ready Kubernetes container platform with full-stack automated operations to manage hybrid cloud, multicloud, and edge deployments."
+
+spec:
+  accelerators:
+    - id: dra_support
+      description: "Support Dynamic Resource Allocation (DRA) APIs to enable more flexible and fine-grained resource requests beyond simple counts."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html-single/nodes/index#nodes-pods-allocate-dra"
+      notes: "DRA v1 APIs are supported in OpenShift 4.21. Attribute-based GPU resource allocation is available using third-party DRA drivers."
+  networking:
+    - id: ai_inference
+      description: "Support the Kubernetes Gateway API with an implementation for advanced traffic management for inference services, which enables capabilities like weighted traffic splitting, header-based routing (for OpenAI protocol headers), and optional integration with service meshes."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html/network_apis/gateway-gateway-networking-k8s-io-v1"
+      notes: ""
+  schedulingOrchestration:
+    - id: gang_scheduling
+      description: "The platform must allow for the installation and successful operation of at least one gang scheduling solution that ensures all-or-nothing scheduling for distributed AI workloads (e.g. Kueue, Volcano, etc.) To be conformant, the vendor must demonstrate that their platform can successfully run at least one such solution."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html/ai_workloads/red-hat-build-of-kueue"
+      notes: "Red Hat build of Kueue enables gang admission for distributed AI workloads."
+    - id: cluster_autoscaling
+      description: "If the platform provides a cluster autoscaler or an equivalent mechanism, it must be able to scale up/down node groups containing specific accelerator types based on pending pods requesting those accelerators."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html/machine_management/applying-autoscaling"
+        - "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html/hardware_accelerators/about-hardware-accelerators"
+      notes: "The OpenShift cluster autoscaler scales up/down MachineSets containing GPU accelerators based on pending pod resource requests."
+    - id: pod_autoscaling
+      description: "If the platform supports the HorizontalPodAutoscaler, it must function correctly for pods utilizing accelerators. This includes the ability to scale these Pods based on custom metrics relevant to AI/ML workloads."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html/nodes/automatically-scaling-pods-with-the-custom-metrics-autoscaler-operator"
+      notes: ""
+  observability:
+    - id: accelerator_metrics
+      description: "For supported accelerator types, the platform must allow for the installation and successful operation of at least one accelerator metrics solution that exposes fine-grained performance metrics via a standardized, machine-readable metrics endpoint. This must include a core set of metrics for per-accelerator utilization and memory usage. Additionally, other relevant metrics such as temperature, power draw, and interconnect bandwidth should be exposed if the underlying hardware or virtualization layer makes them available. The list of metrics should align with emerging standards, such as OpenTelemetry metrics, to ensure interoperability. The platform may provide a managed solution, but this is not required for conformance."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "https://docs.nvidia.com/datacenter/cloud-native/openshift/latest/enable-gpu-monitoring-dashboard.html"
+        - "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html/hardware_accelerators/nvidia-gpu-architecture"
+      notes: "NVIDIA GPU Operator integrates DCGM-based monitoring, exposing GPU utilization, power consumption, temperature, and memory metrics via Prometheus endpoints."
+    - id: ai_service_metrics
+      description: "Provide a monitoring system capable of discovering and collecting metrics from workloads that expose them in a standard format (e.g. Prometheus exposition format). This ensures easy integration for collecting key metrics from common AI frameworks and servers."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html/monitoring/index"
+      notes: "OpenShift provides a fully integrated monitoring system based on Prometheus that automatically discovers and scrapes metrics endpoints exposed by workloads in the standard Prometheus exposition format."
+  security:
+    - id: secure_accelerator_access
+      description: "Ensure that access to accelerators from within containers is properly isolated and mediated by the Kubernetes resource management framework (device plugin or DRA) and container runtime, preventing unauthorized access or interference between workloads."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "https://gist.github.com/harche/c70e240cc5cafe998ac8fb85e9b64631"
+      notes: ""
+  operator:
+    - id: robust_controller
+      description: "The platform must prove that at least one complex AI operator with a CRD (e.g., Ray, Kubeflow) can be installed and functions reliably. This includes verifying that the operator's pods run correctly, its webhooks are operational, and its custom resources can be reconciled."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "https://developers.redhat.com/articles/2025/04/22/fine-tune-llms-kubeflow-trainer-openshift-ai"
+      notes: "Kubeflow Trainer operator with CRDs (TrainJob, TrainingRuntime, ClusterTrainingRuntime), admission webhooks, and controller reconciliation. Supports distributed training for PyTorch, DeepSpeed, MLX, MPI frameworks."
