@@ -1,0 +1,105 @@
+# Kubernetes AI Conformance Checklist
+# Notes: This checklist is based on the Kubernetes AI Conformance document.
+# Participants should fill in the 'status', 'evidence', and 'notes' fields for each requirement.
+
+metadata:
+  kubernetesVersion: v1.33
+  platformName: "JDOS"
+  platformVersion: "v3.0"
+  vendorName: "JD.com"
+  websiteUrl: "http://tig.jd.com/en/products/jdos"
+  repoUrl: "https://github.com/tiglabs"
+  documentationUrl: "http://tig.jd.com/docs/jdos"
+  productLogoUrl: "https://img1.jcloudcs.com/jdt/header/jdt-logo.svg"
+  description: "JDOS is Jingdong Datacenter OS for automated management of shared container clusters and containerized applications in a scalable and elastic manner. The key systems include ContainerFS, ContainerDNS and ContainerLB."
+  contactEmailAddress: "csp@jd.com"
+  k8sConformanceUrl: "https://github.com/cncf/k8s-conformance/tree/master/v1.33/JDOS"
+
+spec:
+  accelerators:
+    - id: dra_support
+      description: "Support Dynamic Resource Allocation (DRA) APIs to enable more flexible and fine-grained resource requests beyond simple counts."
+      level: SHOULD
+      status: "Partially Implemented"
+      evidence:
+        - "https://github.com/liudalibj/jdos-ai-conformance/tree/main/v1.33/dra_support/README.md"
+        - "https://github.com/liudalibj/jdos-ai-conformance/tree/main/v1.33/dra_support/test_procedure.sh"
+        - "https://github.com/liudalibj/jdos-ai-conformance/tree/main/v1.33/dra_support/test_result.log"
+      notes: "Verified that the resource.k8s.io API group is available with all required DRA resource types (deviceclasses, resourceclaims, resourceclaimtemplates, resourceslices) at v1beta1. Verified dra-example-driver plugin works well. DRA v1 APIs (required by spec) are GA in Kubernetes v1.34+, hence the partial implementation status for v1.33."
+  networking:
+    - id: ai_inference
+      description: "Support the Kubernetes Gateway API with an implementation for advanced traffic management for inference services, which enables capabilities like weighted traffic splitting, header-based routing (for OpenAI protocol headers), and optional integration with service meshes."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "https://github.com/liudalibj/jdos-ai-conformance/tree/main/v1.33/ai_inference/README.md"
+        - "https://github.com/liudalibj/jdos-ai-conformance/tree/main/v1.33/ai_inference/test_procedure.sh"
+        - "https://github.com/liudalibj/jdos-ai-conformance/tree/main/v1.33/ai_inference/test_result.log"
+      notes: "Installed Traefik gateway controller, created GatewayClass, Gateway, and HTTPRoute with weighted traffic splitting (70/30) and header-based routing. Verified all resources accepted and functional."
+  schedulingOrchestration:
+    - id: gang_scheduling
+      description: "The platform must allow for the installation and successful operation of at least one gang scheduling solution that ensures all-or-nothing scheduling for distributed AI workloads (e.g. Kueue, Volcano, etc.) To be conformant, the vendor must demonstrate that their platform can successfully run at least one such solution."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "https://github.com/liudalibj/jdos-ai-conformance/tree/main/v1.33/gang_scheduling/README.md"
+        - "https://github.com/liudalibj/jdos-ai-conformance/tree/main/v1.33/gang_scheduling/test_procedure.sh"
+        - "https://github.com/liudalibj/jdos-ai-conformance/tree/main/v1.33/gang_scheduling/test_result.log"
+      notes: "Installed Kueue v0.14.2 gang scheduling solution, configured resource quotas, and submitted a multi-pod job requiring 3 pods to run in parallel. Verified Kueue admitted the job and all 3 pods were scheduled atomically (all-or-nothing)."
+    - id: cluster_autoscaling
+      description: "If the platform provides a cluster autoscaler or an equivalent mechanism, it must be able to scale up/down node groups containing specific accelerator types based on pending pods requesting those accelerators."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "https://github.com/liudalibj/jdos-ai-conformance/tree/main/v1.33/cluster_autoscaling/README.md"
+        - "https://github.com/liudalibj/jdos-ai-conformance/tree/main/v1.33/cluster_autoscaling/test_procedure.sh"
+        - "https://github.com/liudalibj/jdos-ai-conformance/tree/main/v1.33/cluster_autoscaling/test_result.log"
+      notes: "Started with 1 GPU node, deployed 2 pods each requesting 1 GPU (exceeding capacity). Verified autoscaler scaled up to 2 nodes so both pods could run. Then deleted the workload and verified autoscaler scaled back down to 1 node."
+    - id: pod_autoscaling
+      description: "If the platform supports the HorizontalPodAutoscaler, it must function correctly for pods utilizing accelerators. This includes the ability to scale these Pods based on custom metrics relevant to AI/ML workloads."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "https://github.com/liudalibj/jdos-ai-conformance/tree/main/v1.33/pod_autoscaling/README.md"
+        - "https://github.com/liudalibj/jdos-ai-conformance/tree/main/v1.33/pod_autoscaling/test_procedure.sh"
+        - "https://github.com/liudalibj/jdos-ai-conformance/tree/main/v1.33/pod_autoscaling/test_result.log"
+      notes: "Deployed Prometheus stack with DCGM exporter integration, created a custom GPU utilization metric (pod_gpu_utilization) via PrometheusRule, deployed prometheus-adapter to expose it via Custom Metrics API, then created an HPA targeting a GPU workload. Verified HPA scaled up when GPU load exceeded threshold and scaled down when load was removed."
+  observability:
+    - id: accelerator_metrics
+      description: "For supported accelerator types, the platform must allow for the installation and successful operation of at least one accelerator metrics solution that exposes fine-grained performance metrics via a standardized, machine-readable metrics endpoint. This must include a core set of metrics for per-accelerator utilization and memory usage."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "https://github.com/liudalibj/jdos-ai-conformance/tree/main/v1.33/accelerator_metrics/README.md"
+        - "https://github.com/liudalibj/jdos-ai-conformance/tree/main/v1.33/accelerator_metrics/test_procedure.sh"
+        - "https://github.com/liudalibj/jdos-ai-conformance/tree/main/v1.33/accelerator_metrics/test_result.log"
+      notes: "Verified that NVIDIA DCGM Exporter (pre-installed via GPU Operator) exposes GPU metrics at http://nvidia-dcgm-exporter.gpu-operator.svc:9400/metrics in Prometheus format, including per-accelerator utilization, memory, temperature, and power metrics."
+    - id: ai_service_metrics
+      description: "Provide a monitoring system capable of discovering and collecting metrics from workloads that expose them in a standard format (e.g. Prometheus exposition format). This ensures easy integration for collecting key metrics from common AI frameworks and servers."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "https://github.com/liudalibj/jdos-ai-conformance/tree/main/v1.33/ai_service_metrics/README.md"
+        - "https://github.com/liudalibj/jdos-ai-conformance/tree/main/v1.33/ai_service_metrics/test_procedure.sh"
+        - "https://github.com/liudalibj/jdos-ai-conformance/tree/main/v1.33/ai_service_metrics/test_result.log"
+      notes: "Deployed a test AI application (podinfo) exposing Prometheus metrics, then deployed our own Prometheus stack with pod annotation-based discovery. Generated traffic and verified metrics were successfully scraped and queryable."
+  security:
+    - id: secure_accelerator_access
+      description: "Ensure that access to accelerators from within containers is properly isolated and mediated by the Kubernetes resource management framework (device plugin or DRA) and container runtime, preventing unauthorized access or interference between workloads."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "https://github.com/liudalibj/jdos-ai-conformance/tree/main/v1.33/secure_accelerator_access/README.md"
+        - "https://github.com/liudalibj/jdos-ai-conformance/tree/main/v1.33/secure_accelerator_access/test_procedure.sh"
+        - "https://github.com/liudalibj/jdos-ai-conformance/tree/main/v1.33/secure_accelerator_access/test_result.log"
+      notes: "Deployed a pod without GPU resource requests to a GPU node. Verified it cannot access GPU devices (/dev/nvidia* not present). Also, deployed 2 pods each requesting 1 GPU. Verified each pod received a different GPU (different UUIDs), could only see exactly 1 GPU via nvidia-smi, and could not access unauthorized GPU device files."
+  operator:
+    - id: robust_controller
+      description: "The platform must prove that at least one complex AI operator with a CRD (e.g., Ray, Kubeflow) can be installed and functions reliably. This includes verifying that the operator's pods run correctly, its webhooks are operational, and its custom resources can be reconciled."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "https://github.com/liudalibj/jdos-ai-conformance/tree/main/v1.33/robust_controller/README.md"
+        - "https://github.com/liudalibj/jdos-ai-conformance/tree/main/v1.33/robust_controller/test_procedure.sh"
+        - "https://github.com/liudalibj/jdos-ai-conformance/tree/main/v1.33/robust_controller/test_result.log"
+      notes: "Installed KubeRay operator v1.3.0, verified CRDs were registered (RayCluster, RayJob, RayService), tested webhook validation by submitting an invalid RayCluster spec (correctly rejected), created a valid RayCluster that reconciled to ready state, and executed distributed Ray tasks to confirm functionality."
