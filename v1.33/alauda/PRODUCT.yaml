@@ -1,0 +1,138 @@
+# Kubernetes AI Conformance Checklist
+# Notes: This checklist is based on the Kubernetes AI Conformance document.
+# Participants should fill in the 'status', 'evidence', and 'notes' fields
+# for each requirement.
+
+metadata:
+  kubernetesVersion: v1.33
+  platformName: "Alauda Container Platform"
+  platformVersion: "4.2"
+  vendorName: "Alauda"
+  websiteUrl: "https://www.alauda.io/products/acp"
+  documentationUrl: "https://docs.alauda.io/container_platform/4.2/"
+  productLogoUrl: "https://www.alauda.io/hubfs/alauda_io_H_Blue.svg"
+  description: >
+    Alauda Container Platform (ACP) is an enterprise-grade cloud-native platform
+    designed to accelerate digital transformation. Built on Kubernetes, ACP automates
+    the management of diverse and dynamic infrastructures and supports modern
+    application development and operations.
+  contactEmailAddress: "xlzhao@alauda.io"
+
+spec:
+  accelerators:
+    - id: dra_support
+      description: >
+        Dynamic Resource Allocation (DRA) APIs enable more flexible and fine-grained
+        resource requests beyond simple counts.
+      level: SHOULD
+      status: "Implemented"
+      evidence:
+        - "https://cloud.alauda.io/knowledge/solutions/How_to_Use_Alauda_Build_of_NVIDIA_DRA_Driver_for_GPUs.html"
+      notes: ""
+  networking:
+    - id: ai_inference
+      description: >
+        Support the Kubernetes Gateway API with an implementation for advanced
+        traffic management for inference services, which enables capabilities like
+        weighted traffic splitting, header-based routing (for OpenAI protocol
+        headers), and optional integration with service meshes.
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "https://docs.alauda.io/container_platform/4.2/networking/ingress_loadbalancing/ingress_loadbalance_with_envoy_gateway.html"
+      notes: ""
+  schedulingOrchestration:
+    - id: gang_scheduling
+      description: >
+        The platform must allow for the installation and successful operation of at
+        least one gang scheduling solution that ensures all-or-nothing scheduling for
+        distributed AI workloads (e.g. Kueue, Volcano, etc.) To be conformant, the
+        vendor must demonstrate that their platform can successfully run at least one
+        such solution.
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "https://docs.alauda.io/ai/1.5/kueue/how_to/gang_scheduling.html"
+      notes: ""
+    - id: cluster_autoscaling
+      description: >
+        If the platform provides a cluster autoscaler or an equivalent mechanism, it
+        must be able to scale up/down node groups containing specific accelerator
+        types based on pending pods requesting those accelerators.
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "https://github.com/alauda/knowledge/blob/main/docs/en/solutions/ait/cluster-autoscaler-solution.md"
+      notes: ""
+    - id: pod_autoscaling
+      description: >
+        If the platform supports the HorizontalPodAutoscaler, it must function
+        correctly for pods utilizing accelerators. This includes the ability to scale
+        these Pods based on custom metrics relevant to AI/ML workloads.
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "https://docs.alauda.io/container_platform/4.2/en/developer/building_application/operation_maintaining/add_hpa.html"
+      notes: ""
+  observability:
+    - id: accelerator_metrics
+      description: >
+        For supported accelerator types, the platform must allow for the installation
+        and successful operation of at least one accelerator metrics solution that
+        exposes fine-grained performance metrics via a standardized, machine-readable
+        metrics endpoint. This must include a core set of metrics for per-accelerator
+        utilization and memory usage. Additionally, other relevant metrics such as
+        temperature, power draw, and interconnect bandwidth should be exposed if the
+        underlying hardware or virtualization layer makes them available. The list of
+        metrics should align with emerging standards, such as OpenTelemetry metrics,
+        to ensure interoperability. The platform may provide a managed solution, but
+        this is not required for conformance.
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "https://docs.alauda.io/hami/2.7/install/installation.html#installing-alauda-build-of-dcgm-exporter"
+        - "https://docs.alauda.io/hami/2.7/install/installation.html#installing-monitor"
+        - "https://docs.alauda.io/hami/2.7/install/verification.html#verify-monitordashboard"
+        - "https://docs.alauda.io/hami/2.7/install/verification.html#verify-hami-webui"
+        - "https://docs.alauda.io/pgpu/0.17/install/install.html#installing-alauda-build-of-dcgm-exporter"
+        - "https://docs.alauda.io/pgpu/0.17/install/verify.html#verify-gpu-dashboards"
+      notes: >
+        The Alauda Container Platform supports the installation and successful
+        operation of accelerator metrics solutions for both physical GPUs and
+        virtual GPUs (via Alauda build of Hami)
+    - id: ai_service_metrics
+      description: >
+        Provide a monitoring system capable of discovering and collecting metrics
+        from workloads that expose them in a standard format (e.g. Prometheus
+        exposition format). This ensures easy integration for collecting key metrics
+        from common AI frameworks and servers.
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "https://docs.alauda.io/ai/1.5/monitoring_ops/resource_monitoring/intro.html"
+        - "https://docs.alauda.io/ai/1.5/monitoring_ops/resource_monitoring/functions/resource_monitoring.html"
+      notes: ""
+  security:
+    - id: secure_accelerator_access
+      description: >
+        Ensure that access to accelerators from within containers is properly
+        isolated and mediated by the Kubernetes resource management framework
+        (device plugin or DRA) and container runtime, preventing unauthorized
+        access or interference between workloads.
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "https://cloud.alauda.io/knowledge/solutions/AI/Secure_Accelerator_Access_Conformance_Test.html"
+      notes: ""
+  operator:
+    - id: robust_controller
+      description: >
+        The platform must prove that at least one complex AI operator with a CRD
+        (e.g., Ray, Kubeflow) can be installed and functions reliably. This includes
+        verifying that the operator's pods run correctly, its webhooks are
+        operational, and its custom resources can be reconciled.
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "https://docs.alauda.io/container_platform/4.1/extend/operator.html"
+      notes: ""
