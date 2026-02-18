@@ -1,0 +1,94 @@
+# Kubernetes AI Conformance Checklist
+# Notes: This checklist is based on the Kubernetes AI Conformance document.
+# Participants should fill in the 'status', 'evidence', and 'notes' fields for each requirement.
+
+metadata:
+  kubernetesVersion: v1.34
+  platformName: RKE2
+  platformVersion: v1.34
+  vendorName: SUSE
+  websiteUrl: https://www.rancher.com/products/secure-kubernetes-distribution
+  documentationUrl: https://documentation.suse.com/cloudnative/rke2/
+  productLogoUrl: https://cdn.bfldr.com/FQEVVFCB/at/bxqnzwvvzpwtjqb5cxthf8/SUSE_CloudNative_pos-green-stacked.svg
+  description: RKE2 is an enterprise-grade conformant Kubernetes distribution that is a foundational component of SUSE AI and SUSE Rancher Prime.
+  k8sConformanceUrl: https://github.com/cncf/k8s-conformance/tree/master/v1.34/rke-government
+  contactEmailAddress: matt.farina@suse.com
+
+spec:
+  accelerators:
+    - id: dra_support
+      description: "Support Dynamic Resource Allocation (DRA) APIs to enable more flexible and fine-grained resource requests beyond simple counts."
+      level: SHOULD
+      status: "Implemented" # Implemented, Not Implemented, Partially Implemented, N/A
+      evidence:
+        - https://documentation.suse.com/cloudnative/rke2/latest/en/reference/ai_conformance.html#_support_dynamic_resource_allocation_dra # List of URLs or references to documentation/test results
+      notes: "" # Must provide a justification when status is N/A
+  networking:
+    - id: ai_inference
+      description: "Support the Kubernetes Gateway API with an implementation for advanced traffic management for inference services, which enables capabilities like weighted traffic splitting, header-based routing (for OpenAI protocol headers), and optional integration with service meshes."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - https://documentation.suse.com/cloudnative/rke2/latest/en/reference/ai_conformance.html#_support_the_gateway_api
+        - https://raw.githubusercontent.com/SUSE/suse-ai-stack/refs/heads/main/docs/cncf-ai-conformance/v1.34/SUSE-AI/specs/ai_inference.md
+      notes: ""
+  schedulingOrchestration:
+    - id: gang_scheduling
+      description: "The platform must allow for the installation and successful operation of at least one gang scheduling solution that ensures all-or-nothing scheduling for distributed AI workloads (e.g. Kueue, Volcano, etc.) To be conformant, the vendor must demonstrate that their platform can successfully run at least one such solution."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - https://documentation.suse.com/cloudnative/rke2/latest/en/reference/ai_conformance.html#_gang_scheduling
+        - https://raw.githubusercontent.com/SUSE/suse-ai-stack/refs/heads/main/docs/cncf-ai-conformance/v1.34/SUSE-AI/specs/gang_scheduling.md
+      notes: ""
+    - id: cluster_autoscaling
+      description: "If the platform provides a cluster autoscaler or an equivalent mechanism, it must be able to scale up/down node groups containing specific accelerator types based on pending pods requesting those accelerators."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - https://documentation.suse.com/cloudnative/rke2/latest/en/reference/ai_conformance.html#_cluster_autoscaler
+      notes: "The platform does not provide an autoscaler. It can be used in and out of environments where autoscaling it possible. The platform is tested to work with Kubernetes autoscaler."
+    - id: pod_autoscaling
+      description: "If the platform supports the HorizontalPodAutoscaler, it must function correctly for pods utilizing accelerators. This includes the ability to scale these Pods based on custom metrics relevant to AI/ML workloads."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - https://documentation.suse.com/cloudnative/rke2/latest/en/reference/ai_conformance.html#_horizontal_pod_autoscaler
+        - https://raw.githubusercontent.com/SUSE/suse-ai-stack/refs/heads/main/docs/cncf-ai-conformance/v1.34/SUSE-AI/specs/pod_autoscaling.md
+      notes: ""
+  observability:
+    - id: accelerator_metrics
+      description: "For supported accelerator types, the platform must allow for the installation and successful operation of at least one accelerator metrics solution that exposes fine-grained performance metrics via a standardized, machine-readable metrics endpoint. This must include a core set of metrics for per-accelerator utilization and memory usage. Additionally, other relevant metrics such as temperature, power draw, and interconnect bandwidth should be exposed if the underlying hardware or virtualization layer makes them available. The list of metrics should align with emerging standards, such as OpenTelemetry metrics, to ensure interoperability. The platform may provide a managed solution, but this is not required for conformance."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - https://documentation.suse.com/cloudnative/rke2/latest/en/reference/ai_conformance.html#_accelerator_performance_metrics
+        - https://documentation.suse.com/suse-ai/1.0/html/AI-deployment/index.html#observability-installing
+        - https://documentation.suse.com/suse-ai/1.0/html/AI-monitoring/index.html#ai-monitoring-gpu
+      notes: "Accelerator metrics are available through SUSE AI."
+    - id: ai_service_metrics
+      description: "Provide a monitoring system capable of discovering and collecting metrics from workloads that expose them in a standard format (e.g. Prometheus exposition format). This ensures easy integration for collecting key metrics from common AI frameworks and servers."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - https://documentation.suse.com/cloudnative/rke2/latest/en/reference/ai_conformance.html#_ai_job_inference_service_metrics
+        - https://documentation.suse.com/suse-ai/1.0/html/AI-deployment/index.html#observability-installing
+        - https://documentation.suse.com/suse-ai/1.0/html/AI-monitoring/index.html
+      notes: "Service metrics are available through SUSE AI."
+  security:
+    - id: secure_accelerator_access
+      description: "Ensure that access to accelerators from within containers is properly isolated and mediated by the Kubernetes resource management framework (device plugin or DRA) and container runtime, preventing unauthorized access or interference between workloads."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - https://documentation.suse.com/cloudnative/rke2/latest/en/reference/ai_conformance.html#_secure_accelerator_access
+      notes: ""
+  operator:
+    - id: robust_controller
+      description: "The platform must prove that at least one complex AI operator with a CRD (e.g., Ray, Kubeflow) can be installed and functions reliably. This includes verifying that the operator's pods run correctly, its webhooks are operational, and its custom resources can be reconciled."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - https://documentation.suse.com/cloudnative/rke2/latest/en/reference/ai_conformance.html#_robust_crd_and_controller_operation
+        - https://raw.githubusercontent.com/SUSE/suse-ai-stack/refs/heads/main/docs/cncf-ai-conformance/v1.34/SUSE-AI/specs/robust_controller.md
+      notes: ""
