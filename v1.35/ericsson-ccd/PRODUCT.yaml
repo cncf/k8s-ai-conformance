@@ -1,0 +1,105 @@
+# Kubernetes AI Conformance Checklist
+# Notes: This checklist is based on the Kubernetes AI Conformance document.
+# Participants should fill in the 'status', 'evidence', and 'notes' fields for each requirement.
+
+metadata:
+  kubernetesVersion: v1.35
+  platformName: "Cloud Container Distribution"
+  platformVersion: "2.34.0"
+  vendorName: "Ericsson"
+  websiteUrl: "https://www.ericsson.com/en/portfolio/cloud-software-and-services/cloud-core/cloud-infrastructure/cloud-native-infrastructure/cloud-container-distribution"
+  repoUrl: "N/A"
+  documentationUrl: "https://www.ericsson.com/en/portfolio/cloud-software-and-services/cloud-core/cloud-infrastructure/cloud-native-infrastructure/cloud-container-distribution"
+  productLogoUrl: "https://github.com/cncf/landscape/blob/master/hosted_logos/ericsson.svg"
+  description: "Ericsson Cloud Container Distribution provides container management and orchestration for the Ericsson Telco applications that have been adopted to the Cloud Native based Architecture and run in a container environment."
+  contactEmailAddress: "kanwar.saad.bin.liaqat@ericsson.com"
+  k8sConformanceUrl: "https://github.com/cncf/k8s-conformance/tree/master/v1.35/ericsson-ccd"
+
+spec:
+  accelerators:
+    - id: dra_support
+      description: "Support Dynamic Resource Allocation (DRA) APIs to enable more flexible and fine-grained resource requests beyond simple counts."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "see DRA_plugin.md"
+      notes: "DRA is supported and enabled by default in Ericsson Cloud Container Distribution 2.34.0 with k8s 1.35.0."
+    - id: driver_runtime_management
+      description: "Provide a verifiable mechanism for ensuring that compatible accelerator drivers and corresponding container runtime configurations are correctly installed and maintained on nodes with accelerators. Once the accelerator supports exposing driver and runtime version information as part of DRA, then the platform should use the DRA mechanism for verification."
+      level: SHOULD
+      status: "Implemented"
+      evidence:
+        - "see DRA_plugin.md"
+      notes: ""
+    - id: gpu_sharing
+      description: "For accelerators that support static GPU sharing, provide well-defined mechanisms for at least one GPU sharing strategy to improve utilization for workloads that do not require a full dedicated GPU. If hardware-level partitioning is supported, then these fractional GPU resources should be exposed as schedulable resources. If software-based sharing (e.g. time-slicing) is supported, then oversubscription of GPUs should be allowed. Forward-looking: Once the accelerator supports static GPU sharing as part of DRA, the platform should expose the DRA mechanism to allow users to leverage static GPU sharing. Once the accelerator supports dynamic GPU sharing as part of DRA and the partitionable devices feature is GA, the platform should expose the DRA mechanism to allow users to leverage dynamic GPU sharing."
+      level: SHOULD
+      status: ""
+      evidence: []
+      notes: ""
+    - id: virtualized_accelerator
+      description: "For accelerators that support virtualized accelerator technologies (e.g. vGPU), provide well-defined mechanisms for these to be exposed and managed, maintaining consistency with physical fractional GPUs. Forward-looking: Once the accelerator supports virtualized accelerator technologies as part of DRA, then the platform should use the DRA mechanism."
+      level: SHOULD
+      status: ""
+      evidence: []
+      notes: ""
+  networking:
+    - id: ai_inference
+      description: "Support the Kubernetes Gateway API with an implementation for advanced traffic management for inference services, which enables capabilities like weighted traffic splitting, header-based routing (for OpenAI protocol headers), and optional integration with service meshes."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "see gateway_api.md"
+      notes: "Traefik Gateway API controller can be installed and validated on Ericsson Cloud Container Distribution."
+  schedulingOrchestration:
+    - id: gang_scheduling
+      description: "The platform must allow for the installation and successful operation of at least one gang scheduling solution that ensures all-or-nothing scheduling for distributed AI workloads (e.g. Kueue, Volcano, etc.) To be conformant, the vendor must demonstrate that their platform can successfully run at least one such solution."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "see gang_scheduling.md"
+      notes: "Kueue can be installed on Ericsson Cloud Container Distribution to support Gang Scheduling."
+    - id: cluster_autoscaling
+      description: "If the platform provides a cluster autoscaler or an equivalent mechanism, it must be able to scale up/down node groups containing specific accelerator types based on pending pods requesting those accelerators."
+      level: MUST
+      status: "N/A"
+      evidence: "N/A"
+      notes: "Ericsson Cloud Container Distribution is deployed on on-premise or edge clouds with baremetal servers. Cluster auto-scaling is not applicable."
+    - id: pod_autoscaling
+      description: "If the platform supports the HorizontalPodAutoscaler, it must function correctly for pods utilizing accelerators. This includes the ability to scale these Pods based on custom metrics relevant to AI/ML workloads."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "see pod_autoscaling.md"
+      notes: "Ericsson Cloud Container Distribution supports HorizontalPodAutoscaler."
+  observability:
+    - id: accelerator_metrics
+      description: "For supported accelerator types, the platform must allow for the installation and successful operation of at least one accelerator metrics solution that exposes fine-grained performance metrics via a standardized, machine-readable metrics endpoint. This must include a core set of metrics for per-accelerator utilization and memory usage. Additionally, other relevant metrics such as temperature, power draw, and interconnect bandwidth should be exposed if the underlying hardware or virtualization layer makes them available. The list of metrics should align with emerging standards, such as OpenTelemetry metrics, to ensure interoperability. The platform may provide a managed solution, but this is not required for conformance."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "see accelerator_metrics.md"
+      notes: "The NVIDIA GPU-Operator with the DCGM Exporter can be installed on the Ericsson Cloud Container Distribution for exposing accelerator metrics."
+    - id: ai_service_metrics
+      description: "Provide a monitoring system capable of discovering and collecting metrics from workloads that expose them in a standard format (e.g. Prometheus exposition format). This ensures easy integration for collecting key metrics from common AI frameworks and servers."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "see ai_service_metrics.md"
+      notes: "Ericsson Cloud Container Distribution supports Victoria Metrics and the NVIDIA DCGM Exporter metrics can be integrated with it."
+  security:
+    - id: secure_accelerator_access
+      description: "Ensure that access to accelerators from within containers is properly isolated and mediated by the Kubernetes resource management framework (device plugin or DRA) and container runtime, preventing unauthorized access or interference between workloads."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "see secure_accelerator_access.md"
+      notes: "DRA is enabled by default on Ericsson Cloud Container Distribution 2.34.0. Secure accelerator access is ensured by DRA."
+  operator:
+    - id: robust_controller
+      description: "The platform must prove that at least one complex AI operator with a CRD (e.g., Ray, Kubeflow) can be installed and functions reliably. This includes verifying that the operator's pods run correctly, its webhooks are operational, and its custom resources can be reconciled."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "see kuberay.md"
+      notes: "Ericsson Cloud Container Distribution supports the installation of Kuberay."
