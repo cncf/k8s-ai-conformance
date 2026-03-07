@@ -13,4 +13,4 @@ The `AIConformance-1.xx.yaml` files are finalized at Kubernetes Release Freeze a
 
 Once frozen, a new `AIConformance-1.xx.yaml` is added to this repo for the upcoming release so vendors can submit their conformance results for CNCF review and certification.
 
-The conformance requirements are defined by the [Kubernetes AI Conformance](https://github.com/kubernetes-sigs/ai-conformance/blob/main/RELEASE.md) project working group. Join the conversation on [Slack](https://kubernetes.slack.com/archives/C09813W8DC2).
+The conformance requirements are defined by the [Kubernetes AI Conformance](https://github.com/kubernetes-sigs/ai-conformance/blob/main/RELEASE.md) project. Join the conversation on [Slack](https://kubernetes.slack.com/archives/C09813W8DC2).
