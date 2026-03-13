@@ -158,7 +158,7 @@ Pick the one that matches your Kubernetes version:
 The [Kubernetes AI Conformance](https://github.com/kubernetes-sigs/ai-conformance) project governs this program and defines the conformance requirements.
 
 - **Meetings:** Check the [AI Conformance project meetings](https://github.com/kubernetes/community/tree/master/sig-architecture#meetings)
-- **Contact:** sig-architecture@kubernetes.io ([mailing list](https://groups.google.com/a/kubernetes.io/g/sig-architecture))
+- **Contact:** sig-architecture@kubernetes.io ([mailing list](https://groups.google.com/a/kubernetes.io/g/sig-architecture)) and [Slack channel](https://kubernetes.slack.com/messages/k8s-ai-conformance)
 
 ### Certified Platforms
 
@@ -170,7 +170,7 @@ See all certified platforms in the version directories:
 ### Need Help?
 
 - Read the [FAQ](faq.md) first
-- Ask questions in the working group
+- Ask questions in the Kubernetes AI Conformance project
 - [Open an issue](https://github.com/cncf/k8s-ai-conformance/issues)
 - Email conformance@cncf.io
 
