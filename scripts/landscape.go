@@ -438,6 +438,24 @@ func runCmdInDir(dir, name string, args ...string) error {
 	return cmd.Run()
 }
 
+// checkExistingPR checks if there's already an open PR for the given branch on cncf/landscape.
+// Returns the PR URL if one exists, empty string otherwise.
+func checkExistingPR(repoDir, branchName string) string {
+	cmd := exec.Command("gh", "pr", "list",
+		"--repo", "cncf/landscape",
+		"--head", branchName,
+		"--state", "open",
+		"--json", "url",
+		"--jq", ".[0].url // empty",
+	)
+	cmd.Dir = repoDir
+	out, err := cmd.Output()
+	if err != nil {
+		return "" // If gh fails, proceed anyway
+	}
+	return strings.TrimSpace(string(out))
+}
+
 func main() {
 	if len(os.Args) < 2 {
 		log.Fatal("Usage: go run -tags landscape scripts/landscape.go <PRODUCT.yaml path> [--pr-url <url>]")
@@ -464,6 +482,10 @@ func main() {
 	}
 	log.Printf("Parsed product: %s by %s (k8s %s)", meta.PlatformName, meta.VendorName, meta.KubernetesVersion)
 
+	if meta.WebsiteURL == "" {
+		log.Fatal("PRODUCT.yaml: websiteUrl is required for landscape integration")
+	}
+
 	// 2. Clone cncf/landscape repo (shallow)
 	ghToken := os.Getenv("GH_TOKEN")
 	if ghToken == "" {
@@ -476,10 +498,14 @@ func main() {
 	}
 	defer os.RemoveAll(tmpDir)
 
-	cloneURL := fmt.Sprintf("https://x-access-token:%s@github.com/cncf/landscape.git", ghToken)
 	log.Println("Cloning cncf/landscape (shallow)...")
-	if err := runCmd("git", "clone", "--depth", "1", cloneURL, tmpDir); err != nil {
+	if err := runCmd("git", "clone", "--depth", "1", "https://github.com/cncf/landscape.git", tmpDir); err != nil {
 		log.Fatalf("Cloning landscape repo: %v", err)
+	}
+	// Set authenticated remote URL for push (avoids token in clone command/process list)
+	authURL := fmt.Sprintf("https://x-access-token:%s@github.com/cncf/landscape.git", ghToken)
+	if err := runCmdInDir(tmpDir, "git", "remote", "set-url", "origin", authURL); err != nil {
+		log.Fatalf("Setting authenticated remote URL: %v", err)
 	}
 
 	// 3. Read landscape.yml
@@ -540,6 +566,14 @@ func main() {
 	branchName := "ai-conformance/" + sanitizeBranchName(meta.PlatformName)
 	log.Printf("Creating branch %s...", branchName)
 
+	// Check if a PR already exists for this branch
+	existingPR := checkExistingPR(tmpDir, branchName)
+	if existingPR != "" {
+		log.Printf("An open PR already exists for branch %s: %s", branchName, existingPR)
+		log.Println("Skipping — delete the existing PR/branch to re-run.")
+		return
+	}
+
 	if err := runCmdInDir(tmpDir, "git", "checkout", "-b", branchName); err != nil {
 		log.Fatalf("Creating branch: %v", err)
 	}
@@ -550,7 +584,8 @@ func main() {
 	if err := runCmdInDir(tmpDir, "git", "commit", "-m", commitMsg); err != nil {
 		log.Fatalf("Committing changes: %v", err)
 	}
-	if err := runCmdInDir(tmpDir, "git", "push", "-u", "origin", branchName); err != nil {
+	// Use --force in case the branch exists from a previous failed run
+	if err := runCmdInDir(tmpDir, "git", "push", "--force", "-u", "origin", branchName); err != nil {
 		log.Fatalf("Pushing branch: %v", err)
 	}
 

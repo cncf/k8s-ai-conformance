@@ -1,0 +1,97 @@
+name: Update CNCF Landscape
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '**/PRODUCT.yaml'
+  workflow_dispatch:
+    inputs:
+      product_path:
+        description: 'Path to PRODUCT.yaml (e.g., v1.34/openshift/PRODUCT.yaml)'
+        required: true
+        type: string
+
+jobs:
+  update-landscape:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+
+      - name: Install dependencies
+        run: go mod download
+
+      - name: Get changed PRODUCT.yaml files
+        id: changed-files
+        if: github.event_name == 'push'
+        run: |
+          CHANGED=$(git diff --name-only --diff-filter=AM HEAD~1 HEAD -- '**/PRODUCT.yaml')
+          echo "files<<EOF" >> "$GITHUB_OUTPUT"
+          echo "$CHANGED" >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
+          if [ -n "$CHANGED" ]; then
+            echo "any_changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "any_changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Determine files to process
+        id: files
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          PRODUCT_PATH: ${{ inputs.product_path }}
+          CHANGED_FILES: ${{ steps.changed-files.outputs.files }}
+          ANY_CHANGED: ${{ steps.changed-files.outputs.any_changed }}
+        run: |
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            echo "list=$PRODUCT_PATH" >> "$GITHUB_OUTPUT"
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "list<<EOF" >> "$GITHUB_OUTPUT"
+            echo "$CHANGED_FILES" >> "$GITHUB_OUTPUT"
+            echo "EOF" >> "$GITHUB_OUTPUT"
+            echo "changed=$ANY_CHANGED" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Find merged PR URL
+        id: find-pr
+        if: steps.files.outputs.changed == 'true' && github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ github.sha }}
+        run: |
+          PR_URL=$(gh api "repos/${REPO}/commits/${SHA}/pulls" --jq '.[0].html_url // empty')
+          echo "url=$PR_URL" >> "$GITHUB_OUTPUT"
+
+      - name: Configure git identity
+        if: steps.files.outputs.changed == 'true'
+        run: |
+          git config --global user.name "CNCF AI Conformance Bot"
+          git config --global user.email "conformance@cncf.io"
+
+      - name: Update landscape for each product
+        if: steps.files.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.LANDSCAPE_GITHUB_TOKEN }}
+          FILE_LIST: ${{ steps.files.outputs.list }}
+          PR_URL: ${{ steps.find-pr.outputs.url }}
+        run: |
+          echo "$FILE_LIST" | while IFS= read -r file; do
+            [ -z "$file" ] && continue
+            echo "::group::Processing $file"
+            PR_FLAG=""
+            if [ -n "$PR_URL" ]; then
+              PR_FLAG="--pr-url $PR_URL"
+            fi
+            go run -tags landscape scripts/landscape.go "$file" $PR_FLAG
+            echo "::endgroup::"
+          done
