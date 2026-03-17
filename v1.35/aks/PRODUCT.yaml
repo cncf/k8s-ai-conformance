@@ -22,7 +22,6 @@ spec:
       level: MUST
       status: "Implemented"
       evidence: 
-        - evidence: 
         - "https://learn.microsoft.com/azure/aks/supported-kubernetes-versions?#aks-kubernetes-release-calendar"
         - "https://github.com/Azure/AKS/tree/master/ai-conformance/v1.34/secure_accelerator_access"
         - "https://blog.aks.azure.com/2025/11/17/dra-devices-and-drivers-on-kubernetes"
