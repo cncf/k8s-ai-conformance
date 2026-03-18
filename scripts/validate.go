@@ -16,7 +16,7 @@ import (
 
 const landscapeURL = "https://raw.githubusercontent.com/cncf/landscape/master/landscape.yml"
 
-const userAgent = "CNCF-K8s-AI-Conformance-Validator/1.0"
+const userAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
 
 // LandscapeData represents the top-level structure of the CNCF landscape YAML
 type LandscapeData struct {
