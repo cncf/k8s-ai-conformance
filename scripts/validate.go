@@ -16,6 +16,8 @@ import (
 
 const landscapeURL = "https://raw.githubusercontent.com/cncf/landscape/master/landscape.yml"
 
+const userAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+
 // LandscapeData represents the top-level structure of the CNCF landscape YAML
 type LandscapeData struct {
 	Landscape []LandscapeCategory `yaml:"landscape"`
@@ -46,7 +48,7 @@ var memberSuffixes = []string{" (member)", " (supporter)"}
 // names with the trailing "(member)"/"(supporter)" suffix stripped.
 func fetchCNCFMembers() (map[string]bool, error) {
 	client := &http.Client{Timeout: 60 * time.Second}
-	resp, err := client.Get(landscapeURL)
+	resp, err := doRequest(client, http.MethodGet, landscapeURL)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch CNCF landscape: %v", err)
 	}
@@ -378,14 +380,14 @@ func validateURL(urlStr string) error {
 		Timeout: 30 * time.Second,
 	}
 	// Try HEAD first
-	resp, err := client.Head(urlStr)
+	resp, err := doRequest(client, http.MethodHead, urlStr)
 	if err == nil && resp.StatusCode < 400 {
 		resp.Body.Close()
 		return nil
 	}
 
 	// If HEAD fails or returns error, try GET
-	resp, err = client.Get(urlStr)
+	resp, err = doRequest(client, http.MethodGet, urlStr)
 	if err != nil {
 		return err
 	}
@@ -394,6 +396,19 @@ func validateURL(urlStr string) error {
 		return fmt.Errorf("status code %d", resp.StatusCode)
 	}
 	return nil
+}
+
+// doRequest creates an HTTP request with browser-like headers to avoid being
+// blocked by WAFs/bot-protection that reject Go's default User-Agent.
+func doRequest(client *http.Client, method, url string) (*http.Response, error) {
+	req, err := http.NewRequest(method, url, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("User-Agent", userAgent)
+	req.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
+	req.Header.Set("Accept-Language", "en-US,en;q=0.5")
+	return client.Do(req)
 }
 
 func toSnakeCase(str string) string {
