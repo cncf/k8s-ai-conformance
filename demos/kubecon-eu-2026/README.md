@@ -2,7 +2,7 @@
 
 This demo shows the AI Conformance requirements related to Gateway API, Gateway API Inference Extension (GAIE), and disaggregated inference.
 
-The demo uses an AI conformant GKE cluster with TPUs and an llm-d P/D deployment as an example. It can be adapted to run on a different platform + accelerators + disaggregated inference solution combination.
+The demo uses an AI conformant GKE cluster with TPU 7x and an llm-d P/D deployment as an example. It can be adapted to run on a different platform + accelerators + disaggregated inference solution combination.
 
 ```bash
 # Download demo-magic.sh
