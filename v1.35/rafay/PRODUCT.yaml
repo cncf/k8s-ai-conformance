@@ -1,0 +1,110 @@
+# Kubernetes AI Conformance Checklist
+# Notes: This checklist is based on the Kubernetes AI Conformance document.
+# Participants should fill in the 'status', 'evidence', and 'notes' fields for each requirement.
+
+metadata:
+  kubernetesVersion: v1.35
+  platformName: "Rafay Platform"
+  platformVersion: "4.1"
+  vendorName: "Rafay Systems"
+  websiteUrl: "https://rafay.co"
+  repoUrl: "N/A"
+  documentationUrl: "https://docs.rafay.co"
+  productLogoUrl: " https://rafay-svg-image.s3.us-west-2.amazonaws.com/rafay_logo.svg"
+  description: "Rafay Platform provides enterprise-grade Kubernetes cluster provisioning, management, and operations with built-in support for GPU-accelerated AI/ML workloads via Managed Kubernetes Service (MKS)."
+  contactEmailAddress: "support@rafay.co"
+  k8sConformanceUrl: "https://github.com/cncf/k8s-conformance/tree/master/v1.35/rafay"
+
+spec:
+  accelerators:
+    - id: dra_support
+      description: "Support Dynamic Resource Allocation (DRA) APIs to enable more flexible and fine-grained resource requests beyond simple counts."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "dra_support.md"
+        - "https://docs.rafay.co/blog/2025/09/16/deploy-workload-using-dra-resourceclaim-in-kubernetes/"
+      notes: "Rafay Platform supports DRA out of the box. The NVIDIA GPU Operator with DRA driver support is deployed via Blueprint as part of MKS cluster provisioning, enabling DRA-based GPU resource allocation with no additional configuration required."
+    - id: driver_runtime_management
+      description: "Provide a verifiable mechanism for ensuring that compatible accelerator drivers and corresponding container runtime configurations are correctly installed and maintained on nodes with accelerators. Once the accelerator supports exposing driver and runtime version information as part of DRA, then the platform should use the DRA mechanism for verification."
+      level: SHOULD
+      status: "Implemented"
+      evidence:
+        - "dra_support.md"
+      notes: "Rafay Platform supports this out of the box. The NVIDIA GPU Operator deployed via Blueprint automatically manages driver installation, container toolkit configuration, and DRA driver components on GPU nodes."
+    - id: gpu_sharing
+      description: "For accelerators that support static GPU sharing, provide well-defined mechanisms for at least one GPU sharing strategy to improve utilization for workloads that do not require a full dedicated GPU. If hardware-level partitioning is supported, then these fractional GPU resources should be exposed as schedulable resources. If software-based sharing (e.g. time-slicing) is supported, then oversubscription of GPUs should be allowed. Forward-looking: Once the accelerator supports static GPU sharing as part of DRA, the platform should expose the DRA mechanism to allow users to leverage static GPU sharing. Once the accelerator supports dynamic GPU sharing as part of DRA and the partitionable devices feature is GA, the platform should expose the DRA mechanism to allow users to leverage dynamic GPU sharing."
+      level: SHOULD
+      status: ""
+      evidence: []
+      notes: ""
+    - id: virtualized_accelerator
+      description: "For accelerators that support virtualized accelerator technologies (e.g. vGPU), provide well-defined mechanisms for these to be exposed and managed, maintaining consistency with physical fractional GPUs. Forward-looking: Once the accelerator supports virtualized accelerator technologies as part of DRA, then the platform should use the DRA mechanism."
+      level: SHOULD
+      status: ""
+      evidence: []
+      notes: ""
+  networking:
+    - id: ai_inference
+      description: "Support the Kubernetes Gateway API with an implementation for advanced traffic management for inference services, which enables capabilities like weighted traffic splitting, header-based routing (for OpenAI protocol headers), and optional integration with service meshes."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "ai_inference.md"
+      notes: "Gateway API with Traefik can be installed on Rafay MKS clusters, enabling weighted traffic splitting and advanced routing for AI inference workloads."
+  schedulingOrchestration:
+    - id: gang_scheduling
+      description: "The platform must allow for the installation and successful operation of at least one gang scheduling solution that ensures all-or-nothing scheduling for distributed AI workloads (e.g. Kueue, Volcano, etc.) To be conformant, the vendor must demonstrate that their platform can successfully run at least one such solution."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "gang_scheduling.md"
+        - "https://docs.rafay.co/blog/2024/10/10/why-do-we-need-custom-schedulers-for-kubernetes/"
+      notes: "Kueue can be installed on Rafay MKS clusters to provide gang scheduling with all-or-nothing workload admission for distributed AI/ML training jobs."
+    - id: cluster_autoscaling
+      description: "If the platform provides a cluster autoscaler or an equivalent mechanism, it must be able to scale up/down node groups containing specific accelerator types based on pending pods requesting those accelerators."
+      level: MUST
+      status: "Implemented"
+      evidence: []
+      notes: "Rafay Platform provisions clusters on customer infrastructure via the Rafay console. EKS clusters provisioned through Rafay integrate with Karpenter for intelligent cluster autoscaling, including scaling GPU node groups based on pending workload demands. See https://docs.rafay.co/blog/2023/11/01/intelligent-cluster-autoscaling-with-karpenter/"
+    - id: pod_autoscaling
+      description: "If the platform supports the HorizontalPodAutoscaler, it must function correctly for pods utilizing accelerators. This includes the ability to scale these Pods based on custom metrics relevant to AI/ML workloads."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "pod_autoscaler.md"
+      notes: "Rafay Platform supports HorizontalPodAutoscaler out of the box. MKS clusters include metrics-server preinstalled in the default blueprint, enabling CPU and memory-based pod autoscaling with no additional setup."
+  observability:
+    - id: accelerator_metrics
+      description: "For supported accelerator types, the platform must allow for the installation and successful operation of at least one accelerator metrics solution that exposes fine-grained performance metrics via a standardized, machine-readable metrics endpoint. This must include a core set of metrics for per-accelerator utilization and memory usage. Additionally, other relevant metrics such as temperature, power draw, and interconnect bandwidth should be exposed if the underlying hardware or virtualization layer makes them available. The list of metrics should align with emerging standards, such as OpenTelemetry metrics, to ensure interoperability. The platform may provide a managed solution, but this is not required for conformance."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "accelator_metrics.md"
+        - "https://docs.rafay.co/recipes/gpu/nvidia/gpu_blueprint/"
+      notes: "The NVIDIA GPU Operator with DCGM Exporter is deployed via Blueprint, exposing comprehensive GPU metrics (utilization, memory, temperature, power, PCIe bandwidth) in Prometheus format."
+    - id: ai_service_metrics
+      description: "Provide a monitoring system capable of discovering and collecting metrics from workloads that expose them in a standard format (e.g. Prometheus exposition format). This ensures easy integration for collecting key metrics from common AI frameworks and servers."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "ai_service_metrics.md"
+        - "https://docs.rafay.co/integrations/monitoring/overview/"
+      notes: " MKS clusters come with Prometheus components preinstalled in the rafay-infra namespace as part of the default blueprint, enabling immediate scraping and collection of GPU and AI workload metrics."
+  security:
+    - id: secure_accelerator_access
+      description: "Ensure that access to accelerators from within containers is properly isolated and mediated by the Kubernetes resource management framework (device plugin or DRA) and container runtime, preventing unauthorized access or interference between workloads."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "secure_accelerator_access.md"
+      notes: "Rafay Platform supports secure accelerator access out of the box. DRA is enabled by default on MKS clusters, ensuring that only pods with explicit GPU ResourceClaims can access NVIDIA devices, providing complete workload isolation."
+  operator:
+    - id: robust_controller
+      description: "The platform must prove that at least one complex AI operator with a CRD (e.g., Ray, Kubeflow) can be installed and functions reliably. This includes verifying that the operator's pods run correctly, its webhooks are operational, and its custom resources can be reconciled."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "kuberay.md"
+        - "https://docs.rafay.co/recipes/aiml/kuberay/configure/"
+      notes: "Rafay Platform supports this out of the box. The KubeRay operator can be deployed via Rafay Blueprints and Add-Ons, enabling RayJob submission with GPU workload scheduling on MKS clusters."
