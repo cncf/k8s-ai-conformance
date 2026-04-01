@@ -1,0 +1,104 @@
+# Kubernetes AI Conformance Checklist
+# Notes: This checklist is based on the Kubernetes AI Conformance document.
+# Participants should fill in the 'status', 'evidence', and 'notes' fields for each requirement.
+
+metadata:
+  kubernetesVersion: v1.35.3
+  platformName: Viettel AI Platform
+  platformVersion: v1.0.0
+  vendorName: Viettel
+  websiteUrl: https://viettelcloud.vn/
+  documentationUrl: https://docs.viettelcloud.vn/documentation
+  description: Viettel AI Platform is a container management and orchestration platform based on Cloud Native architecture, designed to support AI/ML applications running in Kubernetes environments
+  contactEmailAddress: vcloud@viettel.com.vn
+  k8sConformanceUrl: "https://github.com/cncf/k8s-conformance/tree/master/v1.35/viettel-ai-platform"
+
+spec:
+  accelerators:
+    - id: dra_support
+      description: "Support Dynamic Resource Allocation (DRA) APIs to enable more flexible and fine-grained resource requests beyond simple counts."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - dra_support.md
+      notes: "All resource.k8s.io/v1 DRA API resources registered (DeviceClass, ResourceClaim, ResourceClaimTemplate, ResourceSlice) on Kubernetes v1.35.3; NVIDIA GPU Operator manages GPU nodes"
+    - id: driver_runtime_management
+      description: "Provide a verifiable mechanism for ensuring that compatible accelerator drivers and corresponding container runtime configurations are correctly installed and maintained on nodes with accelerators. Once the accelerator supports exposing driver and runtime version information as part of DRA, then the platform should use the DRA mechanism for verification."
+      level: SHOULD
+      status: "Implemented"
+      evidence:
+        - dra_support.md
+      notes: "NVIDIA GPU Operator automates driver installation and lifecycle management on GPU nodes; nvidia-container-toolkit-daemonset ensures correct container runtime configuration; NVIDIA CUDA Validator confirms driver/runtime correctness per node"
+    - id: gpu_sharing
+      description: "For accelerators that support static GPU sharing, provide well-defined mechanisms for at least one GPU sharing strategy to improve utilization for workloads that do not require a full dedicated GPU. If hardware-level partitioning is supported, then these fractional GPU resources should be exposed as schedulable resources. If software-based sharing (e.g. time-slicing) is supported, then oversubscription of GPUs should be allowed. Forward-looking: Once the accelerator supports static GPU sharing as part of DRA, the platform should expose the DRA mechanism to allow users to leverage static GPU sharing. Once the accelerator supports dynamic GPU sharing as part of DRA and the partitionable devices feature is GA, the platform should expose the DRA mechanism to allow users to leverage dynamic GPU sharing."
+      level: SHOULD
+      status: ""
+      evidence: []
+      notes: ""
+    - id: virtualized_accelerator
+      description: "For accelerators that support virtualized accelerator technologies (e.g. vGPU), provide well-defined mechanisms for these to be exposed and managed, maintaining consistency with physical fractional GPUs. Forward-looking: Once the accelerator supports virtualized accelerator technologies as part of DRA, then the platform should use the DRA mechanism."
+      level: SHOULD
+      status: ""
+      evidence: []
+      notes: ""
+  networking:
+    - id: ai_inference
+      description: "Support the Kubernetes Gateway API with an implementation for advanced traffic management for inference services, which enables capabilities like weighted traffic splitting, header-based routing (for OpenAI protocol headers), and optional integration with service meshes."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - gateway_api.md
+      notes: "Full Gateway API gateway.networking.k8s.io/v1 with Envoy Gateway + Envoy AI Gateway; all resources available including GatewayClass, Gateway, HTTPRoute, GRPCRoute, TLSRoute, ListenerSet"
+  schedulingOrchestration:
+    - id: gang_scheduling
+      description: "The platform must allow for the installation and successful operation of at least one gang scheduling solution that ensures all-or-nothing scheduling for distributed AI workloads (e.g. Kueue, Volcano, etc.) To be conformant, the vendor must demonstrate that their platform can successfully run at least one such solution."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - gang_scheduling.md
+      notes: "Kueue v0.10.2 installed and running (kueue-controller-manager 2/2 Running); all kueue.x-k8s.io/v1beta1 APIs available including ClusterQueue, LocalQueue, ResourceFlavor, Workload"
+    - id: cluster_autoscaling
+      description: "If the platform provides a cluster autoscaler or an equivalent mechanism, it must be able to scale up/down node groups containing specific accelerator types based on pending pods requesting those accelerators."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - cluster_autoscaling.md
+      notes: "Bare-metal deployment (Ubuntu 22.04.5 LTS, containerd 2.2.2); nodes are added via kubeadm join with GPU Operator auto-configuring GPUs; HPA with autoscaling/v2 API is fully operational for pod-level scaling"
+    - id: pod_autoscaling
+      description: "If the platform supports the HorizontalPodAutoscaler, it must function correctly for pods utilizing accelerators. This includes the ability to scale these Pods based on custom metrics relevant to AI/ML workloads."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - pod_autoscaling.md
+      notes: "autoscaling/v2 HPA API validated on two axes: (1) CPU-based HPA scaled from 1 to 10 replicas under load (436%/20% target) and back to 1 after removal; (2) GPU custom metric HPA using Prometheus + Prometheus Adapter bridging DCGM_FI_DEV_GPU_UTIL → dcgm_fi_dev_gpu_util at custom.metrics.k8s.io; HPA gpu-inference-hpa confirmed reading 0/50 from live GPU pod"
+  observability:
+    - id: accelerator_metrics
+      description: "For supported accelerator types, the platform must allow for the installation and successful operation of at least one accelerator metrics solution that exposes fine-grained performance metrics via a standardized, machine-readable metrics endpoint. This must include a core set of metrics for per-accelerator utilization and memory usage. Additionally, other relevant metrics such as temperature, power draw, and interconnect bandwidth should be exposed if the underlying hardware or virtualization layer makes them available. The list of metrics should align with emerging standards, such as OpenTelemetry metrics, to ensure interoperability. The platform may provide a managed solution, but this is not required for conformance."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - accelerator_metrics.md
+      notes: "NVIDIA DCGM Exporter DaemonSet running on GPU nodes; metrics including GPU utilization, memory (free/used), temperature, power draw, PCIe bandwidth, tensor core activity"
+    - id: ai_service_metrics
+      description: "Provide a monitoring system capable of discovering and collecting metrics from workloads that expose them in a standard format (e.g. Prometheus exposition format). This ensures easy integration for collecting key metrics from common AI frameworks and servers."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - ai_service_metrics.md
+      notes: "Grafana Alloy scrapes Prometheus-format metrics from KServe, Envoy AI Gateway, DCGM Exporter; Loki stores aggregated logs/metrics"
+  security:
+    - id: secure_accelerator_access
+      description: "Ensure that access to accelerators from within containers is properly isolated and mediated by the Kubernetes resource management framework (device plugin or DRA) and container runtime, preventing unauthorized access or interference between workloads."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - secure_accelerator_access.md
+      notes: "NVIDIA Device Plugin DaemonSet (nvidia-device-plugin-daemonset) exclusively manages nvidia.com/gpu resource allocation; NVIDIA Container Toolkit enforces device isolation at cgroup/allowlist level; NVIDIA CUDA Validator completed successfully on both GPU nodes confirming isolation"
+  operator:
+    - id: robust_controller
+      description: "The platform must prove that at least one complex AI operator with a CRD (e.g., Ray, Kubeflow) can be installed and functions reliably. This includes verifying that the operator's pods run correctly, its webhooks are operational, and its custom resources can be reconciled."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - robust_controller.md
+      notes: "Viettel AI Platform supports KServe v0.13+; 7 KServe CRDs registered; 8 webhooks (mutating+validating) operational; Envoy AI Gateway with 6 AI-specific CRDs"
