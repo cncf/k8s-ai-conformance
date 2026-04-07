@@ -1,0 +1,87 @@
+# Kubernetes AI Conformance Checklist
+# Notes: This checklist is based on the Kubernetes AI Conformance document.
+# Participants should fill in the 'status', 'evidence', and 'notes' fields for each requirement.
+
+metadata:
+  kubernetesVersion: v1.34
+  platformName: "Cloud Container Engine"
+  platformVersion: "1.34.3-r2"
+  vendorName: "Huawei"
+  websiteUrl: "https://www.huaweicloud.com/intl/en-us/product/cce.html"
+  documentationUrl: "https://support.huaweicloud.com/intl/en-us/cce/index.html"
+  productLogoUrl: "https://res-static.hc-cdn.cn/cloudbu-site/intl/en-us/yunying/new-header/logo.png"
+  description: "Cloud Container Engine (CCE) provides highly scalable, high-performance, enterprise-class Kubernetes clusters. With CCE, you can easily deploy, manage, and scale containerized applications on HUAWEI CLOUD."
+  contactEmailAddress: "weipengcheng4@huawei.com"
+  k8sConformanceUrl: "https://github.com/cncf/k8s-conformance/tree/master/v1.34/huawei-cce"
+
+spec:
+  accelerators:
+    - id: dra_support
+      description: "Support Dynamic Resource Allocation (DRA) APIs to enable more flexible and fine-grained resource requests beyond simple counts."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "https://support.huaweicloud.com/intl/en-us/bestpractice-cce/cce_bestpractice_10075.html"
+      notes: "DRA is supported in CCE for Kubernetes versions 1.34 and above. In CCE, DRA APIs is enabled by default on the CCE control plane."
+  networking:
+    - id: ai_inference
+      description: "Support the Kubernetes Gateway API with an implementation for advanced traffic management for inference services, which enables capabilities like weighted traffic splitting, header-based routing (for OpenAI protocol headers), and optional integration with service meshes."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "https://support.huaweicloud.com/intl/en-us/bestpractice-cce/cce_bestpractice_10076.html"
+      notes: ""
+  schedulingOrchestration:
+    - id: gang_scheduling
+      description: "The platform must allow for the installation and successful operation of at least one gang scheduling solution that ensures all-or-nothing scheduling for distributed AI workloads (e.g. Kueue, Volcano, etc.) To be conformant, the vendor must demonstrate that their platform can successfully run at least one such solution."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "https://support.huaweicloud.com/intl/en-us/usermanual-cce/cce_10_0778.html"
+      notes: ""
+    - id: cluster_autoscaling
+      description: "If the platform provides a cluster autoscaler or an equivalent mechanism, it must be able to scale up/down node groups containing specific accelerator types based on pending pods requesting those accelerators."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "https://support.huaweicloud.com/intl/en-us/bestpractice-cce/cce_bestpractice_10077.html"
+      notes: ""
+    - id: pod_autoscaling
+      description: "If the platform supports the HorizontalPodAutoscaler, it must function correctly for pods utilizing accelerators. This includes the ability to scale these Pods based on custom metrics relevant to AI/ML workloads."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "https://support.huaweicloud.com/intl/en-us/bestpractice-cce/cce_bestpractice_10078.html"
+      notes: ""
+  observability:
+    - id: accelerator_metrics
+      description: "For supported accelerator types, the platform must allow for the installation and successful operation of at least one accelerator metrics solution that exposes fine-grained performance metrics via a standardized, machine-readable metrics endpoint. This must include a core set of metrics for per-accelerator utilization and memory usage. Additionally, other relevant metrics such as temperature, power draw, and interconnect bandwidth should be exposed if the underlying hardware or virtualization layer makes them available. The list of metrics should align with emerging standards, such as OpenTelemetry metrics, to ensure interoperability. The platform may provide a managed solution, but this is not required for conformance."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "https://support.huaweicloud.com/intl/en-us/bestpractice-cce/cce_bestpractice_10011.html"
+        - "https://support.huaweicloud.com/intl/en-us/usermanual-cce/cce_10_0970.html"
+    - id: ai_service_metrics
+      description: "Provide a monitoring system capable of discovering and collecting metrics from workloads that expose them in a standard format (e.g. Prometheus exposition format). This ensures easy integration for collecting key metrics from common AI frameworks and servers."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "https://support.huaweicloud.com/intl/en-us/bestpractice-cce/cce_bestpractice_10079.html"
+  security:
+    - id: secure_accelerator_access
+      description: "Ensure that access to accelerators from within containers is properly isolated and mediated by the Kubernetes resource management framework (device plugin or DRA) and container runtime, preventing unauthorized access or interference between workloads."
+      level: MUST
+      status: "Implemented"
+      evidence: 
+        - "https://support.huaweicloud.com/intl/en-us/usermanual-cce/cce_10_0345.html"
+      notes: ""
+  operator:
+    - id: robust_controller
+      description: "The platform must prove that at least one complex AI operator with a CRD (e.g., Ray, Kubeflow) can be installed and functions reliably. This includes verifying that the operator's pods run correctly, its webhooks are operational, and its custom resources can be reconciled."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "https://support.huaweicloud.com/intl/en-us/usermanual-cce/cce_10_0958.html"
+        - "https://support.huaweicloud.com/intl/en-us/usermanual-cce/cce_10_1000.html"
+        - "https://support.huaweicloud.com/intl/en-us/bestpractice-cce/cce_bestpractice_0132.html"
+      notes: ""
