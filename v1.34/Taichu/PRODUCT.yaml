@@ -5,13 +5,14 @@ metadata:
   kubernetesVersion: v1.34
   platformName: "Taichu Kubernetes Service"
   platformVersion: "v1.12.0"
-  vendorName: "Xi'an TieKe Jingwei Information Technology Co.,Ltd."
+  vendorName: "CARS - China Academy of Railway Sciences"
   website_url: "https://www.rails.cn/xian/en-us/src/prointroduce/kmpp"
   repo_url: "https://github.com/mensylisir/taichu-ai"
   documentation_url: "https://github.com/mensylisir/taichu-ai/tree/master/docs"
   product_logo_url: "https://www.rails.cn/xian/assets/static/logo1.179003c.2b0dfa30eeb2a44c4d53445a8da814de.svg"
   description: "TaiChu kubernetes engine provie an easier,powerful platform that helps enterprise to use Kubernetes faster and better, include but not limited to installation and maintenance of k8s, deployment, monitoring and management of containerized applications,etc."
   contact_email_address: "whoisfisher@163.com"
+  k8s_conformance_url: "https://github.com/cncf/k8s-conformance/tree/master/v1.34/Taichu"
 
 spec:
   accelerators:
