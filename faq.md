@@ -40,9 +40,3 @@ A unified approach is taken to avoid fragmentation and ensure workload portabili
 ### What is the expected revision cycle for conformance?
 
 The revision cycle will be aligned with the release cycles of Kubernetes.
-
-### Can I certify a platform or product that is built on top of an existing Kubernetes distribution?
-
-Yes. Your product does not need to be a standalone Kubernetes distribution to qualify for K8s AI Conformance. It is perfectly acceptable for your product to sit on top of a third-party distribution, provided that the underlying distribution is already Kubernetes Conformant.
-
-When submitting your application, you should refer to the third-party distribution's official conformance results to satisfy the base requirements.
