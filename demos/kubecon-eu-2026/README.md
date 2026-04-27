@@ -15,3 +15,8 @@ See it in action:
 
 [<img src="https://img.youtube.com/vi/RRhPMuKPZG8/maxresdefault.jpg" width="560" height="315"
 />](https://www.youtube.com/embed/RRhPMuKPZG8?si=6niy8XUIE1aFvDjq)
+
+Watch the KubeCon EU keynote recording:
+
+[<img src="https://img.youtube.com/vi/GkeNG3wxUfY/maxresdefault.jpg" width="560" height="315"
+/>](https://youtu.be/GkeNG3wxUfY?si=7nbRcpTpfhVTncd7&t=1913)
