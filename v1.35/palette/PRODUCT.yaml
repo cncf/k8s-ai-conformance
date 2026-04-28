@@ -12,7 +12,7 @@ metadata:
   productLogoUrl: "https://cdn.prod.website-files.com/64105dfa8da6a9f617932c6c/67a9ecf4cd236a3776422357_Palette_Horizontal_light-bkgd_RGB.svg"
   description: "Spectro Cloud Palette is a full-stack, declarative Kubernetes management platform for public cloud, private data centers, and edge environments, with curated packs for CNIs, CSIs, operators, and policy-driven lifecycle automation."
   contactEmailAddress: "romain@spectrocloud.com"
-  k8sConformanceUrl: "https://github.com/cncf/k8s-conformance/tree/master/v1.35/palette"
+  k8sConformanceUrl: "https://github.com/cncf/k8s-conformance/tree/master/v1.35/spectrocloud"
 
 spec:
   accelerators:
