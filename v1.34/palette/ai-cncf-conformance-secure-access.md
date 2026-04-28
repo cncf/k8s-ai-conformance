@@ -1,4 +1,4 @@
-# Spectro Cloud Palette and PaletteAI Secure Accelerator Access
+# Spectro Cloud Palette Secure Accelerator Access
 
 **MUST**: Ensure that access to accelerators from within containers is properly isolated and mediated by the Kubernetes resource management framework (device plugin or DRA) and container runtime, preventing unauthorized access or interference between workloads.
 
