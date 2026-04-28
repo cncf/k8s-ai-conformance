@@ -1,10 +1,10 @@
-# Spectro Cloud Palette and PaletteAI Secure Accelerator Access
+# Spectro Cloud Palette Secure Accelerator Access
 
 **MUST**: Ensure that access to accelerators from within containers is properly isolated and mediated by the Kubernetes resource management framework (device plugin or DRA) and container runtime, preventing unauthorized access or interference between workloads.
 
 ## Tests
 
-These validation steps are unchanged from v1.33 and remain valid for PXK v1.34 and v1.35 clusters. They were validated on PXK Kubernetes v1.35 clusters deployed and managed by Spectro Cloud Palette.
+These validation steps are unchanged from v1.33 and remain valid for PXK v1.35 clusters. They were validated on PXK Kubernetes v1.35 clusters deployed and managed by Spectro Cloud Palette.
 
 ### Test 1: Verify Isolated GPU Access via Device Plugin
 
