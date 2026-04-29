@@ -40,3 +40,27 @@ A unified approach is taken to avoid fragmentation and ensure workload portabili
 ### What is the expected revision cycle for conformance?
 
 The revision cycle will be aligned with the release cycles of Kubernetes.
+
+### Can I certify a platform or product that is built on top of an existing Kubernetes distribution?
+
+Yes. Your product does not need to be a standalone Kubernetes distribution to qualify for K8s AI Conformance. It is perfectly acceptable for your product to sit on top of a third-party distribution, provided that the underlying distribution is already Kubernetes Conformant.
+
+Building on a conformant distribution does not automatically make the layered product AI conformant. The layered product must independently demonstrate conformance for its own supported configuration.
+
+#### What must a layered product demonstrate on its own?
+
+<!-- TODO: Open for discussion — define the minimum requirements a layered product
+     must satisfy independently of the underlying platform's conformance. -->
+
+The layered product is expected to:
+*   Run the conformance tests (or complete the self-assessment checklist) in its own supported and shipped configuration.
+*   Show that its packaging, integrations, default settings, and additional components do not break or degrade any conformance requirements.
+
+#### How should a layered product distinguish its conformance claim from the already-conformant base distribution's?
+
+<!-- TODO: Open for discussion — clarify how the certification scope of a layered
+     product is distinguished from the already-conformant base distribution. -->
+
+The layered product's submission should clearly articulate:
+*   What additional functionality, supported configuration, or validated behavior it contributes beyond the already-conformant base platform.
+*   How its claim is distinct from the underlying distribution's claim — i.e., what value or differentiation it adds that warrants a separate certification.
