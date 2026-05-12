@@ -25,6 +25,27 @@ spec:
         - "dra_support.md"
         - "https://github.com/spectrocloud/pack-central/tree/main/packs/nvidia-dra-driver-25.8.1"
       notes: "Validated on a live PXK 1.35 cluster managed by Spectro Cloud Palette. The cluster exposes the Kubernetes DRA v1 API group under resource.k8s.io/v1, including DeviceClass, ResourceClaim, ResourceClaimTemplate, and ResourceSlice. Palette manages upstream-conformant Kubernetes clusters and does not restrict the installation or operation of DRA-compatible resource drivers."
+    - id: driver_runtime_management
+      description: "Provide a verifiable mechanism for ensuring that compatible accelerator drivers and corresponding container runtime configurations are correctly installed and maintained on nodes with accelerators. Once the accelerator supports exposing driver and runtime version information as part of DRA, then the platform should use the DRA mechanism for verification."
+      level: SHOULD
+      status: "Implemented"
+      evidence:
+        - "https://docs.spectrocloud.com/integrations/packs/?pack=nvidia-gpu-operator-ai"
+        - "ai-cncf-conformance-secure-access.md"
+      notes: "Palette supports driver and container runtime management through the NVIDIA GPU Operator pack. The operator installs and maintains NVIDIA drivers, the NVIDIA container toolkit, device plugin, validators, and DCGM exporter components on GPU-enabled nodes."
+    - id: gpu_sharing
+      description: "For accelerators that support static GPU sharing, provide well-defined mechanisms for at least one GPU sharing strategy to improve utilization for workloads that do not require a full dedicated GPU. If hardware-level partitioning is supported, then these fractional GPU resources should be exposed as schedulable resources. If software-based sharing (e.g. time-slicing) is supported, then oversubscription of GPUs should be allowed. Forward-looking: Once the accelerator supports static GPU sharing as part of DRA, the platform should expose the DRA mechanism to allow users to leverage static GPU sharing. Once the accelerator supports dynamic GPU sharing as part of DRA and the partitionable devices feature is GA, the platform should expose the DRA mechanism to allow users to leverage dynamic GPU sharing."
+      level: SHOULD
+      status: "Implemented"
+      evidence:
+        - "https://docs.spectrocloud.com/integrations/packs/?pack=nvidia-gpu-operator-ai"
+      notes: "Palette supports deployment of NVIDIA GPU Operator via packs. GPU sharing strategies such as time-slicing and MIG can be configured where supported by the underlying hardware. For MIG-based partitioning, GPU-specific node labels can be applied at the node pool level during cluster creation to expose fractional GPU resources to Kubernetes workloads."
+    - id: virtualized_accelerator
+      description: "For accelerators that support virtualized accelerator technologies (e.g. vGPU), provide well-defined mechanisms for these to be exposed and managed, maintaining consistency with physical fractional GPUs. Forward-looking: Once the accelerator supports virtualized accelerator technologies as part of DRA, then the platform should use the DRA mechanism."
+      level: SHOULD
+      status: "N/A"
+      evidence: []
+      notes: "Palette does not provide a managed virtualized accelerator or vGPU service as part of this submission. Customers may deploy vendor-specific vGPU components where supported by their infrastructure, but vGPU management is not claimed for this conformance submission."
   networking:
     - id: ai_inference
       description: "Support the Kubernetes Gateway API with an implementation for advanced traffic management for inference services, which enables capabilities like weighted traffic splitting, header-based routing (for OpenAI protocol headers), and optional integration with service meshes."
