@@ -6,7 +6,7 @@ metadata:
   kubernetesVersion: v1.35
   platformName: "Amazon Elastic Kubernetes Service (EKS)"
   platformVersion: "1.35.2-eks.9"
-  vendorName: "Amazon Web Services (AWS)"
+  vendorName: "Amazon Web Services"
   websiteUrl: "https://aws.amazon.com/eks/"
   repoUrl: "https://github.com/awslabs/ai-on-eks"
   documentationUrl: "https://docs.aws.amazon.com/eks/latest/userguide/what-is-eks.html"
@@ -61,7 +61,7 @@ spec:
       status: "Implemented"
       evidence:
         - "https://aws.amazon.com/blogs/hpc/scaling-your-llm-inference-workloads-multi-node-deployment-with-tensorrt-llm-and-triton-on-amazon-eks/" # LeaderWorkerSet on EKS
-        - "https://awslabs.github.io/ai-on-eks/docs/infra/trainium#volcano-scheduler" # Volcano on EKS blueprint
+        - "https://awslabs.github.io/ai-on-eks/docs/blueprints/training/Neuron/RayTrain-Llama2#how-volcano-works-with-gang-scheduling" # Volcano on EKS blueprint
         - "https://builder.aws.com/content/2zsUDYed1Df7zHHZFc11MRctb6M/fractional-gpu-sharing-on-amazon-eks-using-nvidia-kai-scheduler-and-accelerated-ec2-instances" # Kai Scheduler on EKS
         - "https://aws.amazon.com/blogs/big-data/deploy-apache-yunikorn-batch-scheduler-for-amazon-emr-on-eks/" # Yunikorn on EKS"
         - "https://aws.amazon.com/blogs/hpc/gang-scheduling-pods-on-amazon-eks-using-aws-batch-multi-node-processing-jobs/" # AWS Batch on EKS"
