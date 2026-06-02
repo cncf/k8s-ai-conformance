@@ -1,0 +1,116 @@
+# Kubernetes AI Conformance Checklist
+# Notes: This checklist is based on the Kubernetes AI Conformance document.
+# Participants should fill in the 'status', 'evidence', and 'notes' fields for each requirement.
+
+metadata:
+  kubernetesVersion: v1.35
+  platformName: "Amazon Elastic Kubernetes Service (EKS)"
+  platformVersion: "1.35.2-eks.9"
+  vendorName: "Amazon Web Services"
+  websiteUrl: "https://aws.amazon.com/eks/"
+  repoUrl: "https://github.com/awslabs/ai-on-eks"
+  documentationUrl: "https://docs.aws.amazon.com/eks/latest/userguide/what-is-eks.html"
+  productLogoUrl: "https://raw.githubusercontent.com/awslabs/ai-on-eks/refs/heads/main/ai-conformance/amazon_eks_logo_icon_170592.png"
+  description: "Amazon EKS is a managed Kubernetes service that you can use to build, run, and scale production-ready Kubernetes applications across any environment"
+  contactEmailAddress: "splichri@amazon.com"
+  k8sConformanceUrl: "https://github.com/cncf/k8s-conformance/tree/master/v1.35/eks"
+
+spec:
+  accelerators:
+    - id: dra_support
+      description: "Support Dynamic Resource Allocation (DRA) APIs to enable more flexible and fine-grained resource requests beyond simple counts."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "https://docs.aws.amazon.com/eks/latest/userguide/device-management.html"
+      notes: "DRA is supported in EKS for Kubernetes versions 1.33 and above. In EKS, DRA is enabled by default on the EKS control plane and in the EKS-optimized AL2023 and Bottlerocket AMIs."
+    - id: driver_runtime_management
+      description: "Provide a verifiable mechanism for ensuring that compatible accelerator drivers and corresponding container runtime configurations are correctly installed and maintained on nodes with accelerators. Once the accelerator supports exposing driver and runtime version information as part of DRA, then the platform should use the DRA mechanism for verification."
+      level: SHOULD
+      status: "Implemented"
+      evidence:
+        - "https://docs.aws.amazon.com/eks/latest/userguide/device-management.html"
+      notes: "Implemented via DRA"
+    - id: gpu_sharing
+      description: "For accelerators that support static GPU sharing, provide well-defined mechanisms for at least one GPU sharing strategy to improve utilization for workloads that do not require a full dedicated GPU. If hardware-level partitioning is supported, then these fractional GPU resources should be exposed as schedulable resources. If software-based sharing (e.g. time-slicing) is supported, then oversubscription of GPUs should be allowed. Forward-looking: Once the accelerator supports static GPU sharing as part of DRA, the platform should expose the DRA mechanism to allow users to leverage static GPU sharing. Once the accelerator supports dynamic GPU sharing as part of DRA and the partitionable devices feature is GA, the platform should expose the DRA mechanism to allow users to leverage dynamic GPU sharing."
+      level: SHOULD
+      status: "Implemented"
+      evidence:
+        - "https://awslabs.github.io/ai-on-eks/docs/guidance/dynamic-resource-allocation#how-to-deploy-mig-with-dra"
+      notes: "Implemented via DRA"
+    - id: virtualized_accelerator
+      description: "For accelerators that support virtualized accelerator technologies (e.g. vGPU), provide well-defined mechanisms for these to be exposed and managed, maintaining consistency with physical fractional GPUs. Forward-looking: Once the accelerator supports virtualized accelerator technologies as part of DRA, then the platform should use the DRA mechanism."
+      level: SHOULD
+      status: "Implemented"
+      evidence:
+        - "https://aws.amazon.com/blogs/containers/gpu-sharing-on-amazon-eks-with-nvidia-time-slicing-and-accelerated-ec2-instances/"
+      notes: ""
+  networking:
+    - id: ai_inference
+      description: "Support the Kubernetes Gateway API with an implementation for advanced traffic management for inference services, which enables capabilities like weighted traffic splitting, header-based routing (for OpenAI protocol headers), and optional integration with service meshes."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "https://kubernetes-sigs.github.io/aws-load-balancer-controller/latest/guide/gateway/gateway/"
+        - "https://docs.aws.amazon.com/elasticloadbalancing/latest/application/introduction.html"
+      notes: "EKS supports Kubernetes Gateway API and Ingress through the AWS Load Balancer Controller, which manages AWS Application Load Balancers (L7) and Network Load Balancers (L4)."
+  schedulingOrchestration:
+    - id: gang_scheduling
+      description: "The platform must allow for the installation and successful operation of at least one gang scheduling solution that ensures all-or-nothing scheduling for distributed AI workloads (e.g. Kueue, Volcano, etc.) To be conformant, the vendor must demonstrate that their platform can successfully run at least one such solution."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "https://aws.amazon.com/blogs/hpc/scaling-your-llm-inference-workloads-multi-node-deployment-with-tensorrt-llm-and-triton-on-amazon-eks/" # LeaderWorkerSet on EKS
+        - "https://awslabs.github.io/ai-on-eks/docs/blueprints/training/Neuron/RayTrain-Llama2#how-volcano-works-with-gang-scheduling" # Volcano on EKS blueprint
+        - "https://builder.aws.com/content/2zsUDYed1Df7zHHZFc11MRctb6M/fractional-gpu-sharing-on-amazon-eks-using-nvidia-kai-scheduler-and-accelerated-ec2-instances" # Kai Scheduler on EKS
+        - "https://aws.amazon.com/blogs/big-data/deploy-apache-yunikorn-batch-scheduler-for-amazon-emr-on-eks/" # Yunikorn on EKS"
+        - "https://aws.amazon.com/blogs/hpc/gang-scheduling-pods-on-amazon-eks-using-aws-batch-multi-node-processing-jobs/" # AWS Batch on EKS"
+      notes: "EKS supports using custom schedulers, LeaderWorkerSet, as well as integrations with AWS Batch and Amazon Sagemaker for gang scheduling."
+    - id: cluster_autoscaling
+      description: "If the platform provides a cluster autoscaler or an equivalent mechanism, it must be able to scale up/down node groups containing specific accelerator types based on pending pods requesting those accelerators."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "https://docs.aws.amazon.com/eks/latest/userguide/auto-accelerated.html" # EKS Auto Mode with accelerated workloads
+        - "https://aws.amazon.com/blogs/containers/scaling-a-large-language-model-with-nvidia-nim-on-amazon-eks-with-karpenter/" # Karpenter scaling with LLM
+      notes: "EKS supports Karpenter, which automatically scales nodes up/down for pending pods based on node selection constraints. When the Karpenter node selection constraints in a NodePool define instances with accelerators, Karpenter scales nodes up/down based on the pending pods requesting accelerators. Karpenter is used in EKS Auto Mode, an EKS feature where the cluster’s nodes, networking, storage, and load balancing are fully managed and scaled by EKS. EKS also supports Cluster Autoscaler."
+    - id: pod_autoscaling
+      description: "If the platform supports the HorizontalPodAutoscaler, it must function correctly for pods utilizing accelerators. This includes the ability to scale these Pods based on custom metrics relevant to AI/ML workloads."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "https://github.com/awslabs/ai-on-eks/tree/main/ai-conformance/1.34/pod_autoscaling"
+      notes: "EKS supports pod autoscalers including vanilla HPA and KEDA with HPA. HPA can be configured to scale based on custom metrics, such as those exposed by NVIDIA DCGM exporter or Neuron Monitor. The example linked in the evidence shows how to use HPA with the DCGM_FI_DEV_GPU_UTIL metric from DCGM on EKS."
+  observability:
+    - id: accelerator_metrics
+      description: "For supported accelerator types, the platform must allow for the installation and successful operation of at least one accelerator metrics solution that exposes fine-grained performance metrics via a standardized, machine-readable metrics endpoint. This must include a core set of metrics for per-accelerator utilization and memory usage. Additionally, other relevant metrics such as temperature, power draw, and interconnect bandwidth should be exposed if the underlying hardware or virtualization layer makes them available. The list of metrics should align with emerging standards, such as OpenTelemetry metrics, to ensure interoperability. The platform may provide a managed solution, but this is not required for conformance."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "https://docs.aws.amazon.com/eks/latest/best-practices/aiml-observability.html"
+        - "https://aws.amazon.com/blogs/containers/part-1-introduction-to-observing-machine-learning-workloads-on-amazon-eks/"
+      notes: "EKS supports collecting accelerator metrics through DCGM (NVIDIA) and Nueron Monitor (Nueron), and integrates these solutions with CloudWatch Observability Agent and AWS Distro for Open Telemetry for export and CloudWatch and Grafana with Prometheus for visualization. With these solutions, users can measure GPU, network, storage, and memory utilization and can inspect these metrics at varying Kubernetes resource levels."
+    - id: ai_service_metrics
+      description: "Provide a monitoring system capable of discovering and collecting metrics from workloads that expose them in a standard format (e.g. Prometheus exposition format). This ensures easy integration for collecting key metrics from common AI frameworks and servers."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "https://docs.aws.amazon.com/eks/latest/best-practices/aiml-observability.html"
+        - "https://aws.amazon.com/blogs/containers/part-1-introduction-to-observing-machine-learning-workloads-on-amazon-eks/"
+      notes: "EKS integrates with Amazon CloudWatch, open source Prometheus, and Amazon Managed Prometheus. The CloudWatch Observability Agent can be easily installed in EKS clusters via EKS add-ons to scrape node and application-level metrics and export them to CloudWatch metrics dashboards. CloudWatch Container Insights can be used with these metrics for out-of-the-box deep analysis. The AWS Distro for Open Telemetry add-on can be easily installed in EKS clusters via EKS add-ons to scrape node and application-level metrics and export them to open source Prometheus or Amazon Managed Prometheus."
+  security:
+    - id: secure_accelerator_access
+      description: "Ensure that access to accelerators from within containers is properly isolated and mediated by the Kubernetes resource management framework (device plugin or DRA) and container runtime, preventing unauthorized access or interference between workloads."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "https://github.com/awslabs/ai-on-eks/tree/main/ai-conformance/1.34/secure_accelerator_access"
+      notes: "See EKS-Conformance-Test-1.md and EKS-Conformance-Test-2.md in the linked resource for steps."
+  operator:
+    - id: robust_controller
+      description: "The platform must prove that at least one complex AI operator with a CRD (e.g., Ray, Kubeflow) can be installed and functions reliably. This includes verifying that the operator's pods run correctly, its webhooks are operational, and its custom resources can be reconciled."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "https://awslabs.github.io/ai-on-eks/docs/blueprints/inference"
+      notes: "EKS supports a breadth of inference serving frameworks including Ray, vLLM, KubeFlow, AIBrix, NVIDIA Triton. The linked resource contains infrastructure-as-code templates to deploy these solutions on EKS."
