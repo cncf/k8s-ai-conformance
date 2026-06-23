@@ -5,7 +5,7 @@
 **A standardized approach to running AI/ML workloads on Kubernetes**
 
 [![CNCF Project](https://img.shields.io/badge/CNCF-Project-blue)](https://www.cncf.io/)
-[![Kubernetes](https://img.shields.io/badge/Kubernetes-1.33%20%7C%201.34%20%7C%201.35-326CE5?logo=kubernetes)](https://kubernetes.io/)
+[![Kubernetes](https://img.shields.io/badge/Kubernetes-1.33%20%7C%201.34%20%7C%201.35%20%7C%201.36-326CE5?logo=kubernetes)](https://kubernetes.io/)
 
 [Get Certified](#for-vendors) · [Contribute](#for-contributors) · [FAQ](faq.md) · [AI Conformance Project](https://github.com/kubernetes-sigs/ai-conformance)
 
@@ -139,7 +139,8 @@ For the full and up-to-date requirements, see the [conformance versions](https:/
 
 Pick the one that matches your Kubernetes version:
 
-- [AIConformance-1.35.yaml](docs/AIConformance-1.35.yaml) (latest)
+- [AIConformance-1.36.yaml](docs/AIConformance-1.36.yaml) (latest)
+- [AIConformance-1.35.yaml](docs/AIConformance-1.35.yaml)
 - [AIConformance-1.34.yaml](docs/AIConformance-1.34.yaml)
 - [AIConformance-1.33.yaml](docs/AIConformance-1.33.yaml)
 
@@ -163,6 +164,7 @@ The [Kubernetes AI Conformance](https://github.com/kubernetes-sigs/ai-conformanc
 ### Certified Platforms
 
 See all certified platforms in the version directories:
+- [v1.36/](/v1.36/)
 - [v1.35/](/v1.35/)
 - [v1.34/](/v1.34/)
 - [v1.33/](/v1.33/)
