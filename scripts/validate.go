@@ -18,7 +18,7 @@ import (
 
 const landscapeURL = "https://raw.githubusercontent.com/cncf/landscape/master/landscape.yml"
 
-const userAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+const userAgent = "CNCF-K8s-AI-Conformance-Validator/1.0 (+https://github.com/cncf/k8s-ai-conformance)"
 
 // LandscapeData represents the top-level structure of the CNCF landscape YAML
 type LandscapeData struct {
@@ -400,8 +400,8 @@ func validateURL(urlStr string) error {
 	return nil
 }
 
-// doRequest creates an HTTP request with browser-like headers to avoid being
-// blocked by WAFs/bot-protection that reject Go's default User-Agent.
+// doRequest creates an HTTP request that honestly identifies this validator,
+// so vendors whose docs sit behind a WAF can allowlist it by User-Agent.
 func doRequest(client *http.Client, method, url string) (*http.Response, error) {
 	req, err := http.NewRequest(method, url, nil)
 	if err != nil {
