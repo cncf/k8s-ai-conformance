@@ -13,6 +13,7 @@ metadata:
   productLogoUrl: https://raw.githubusercontent.com/cncf/landscape/master/hosted_logos/azure-kubernetes-service.svg
   description: "Azure Kubernetes Service (AKS) is a managed Kubernetes service that you can use to deploy and manage containerized applications at scale."
   contactEmailAddress: sachidesai@microsoft.com
+  k8sConformanceUrl: https://github.com/cncf/k8s-conformance/tree/master/v1.36/aks
 
 spec:
   accelerators:
