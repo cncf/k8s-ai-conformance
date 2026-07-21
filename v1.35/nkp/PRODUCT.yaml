@@ -1,0 +1,107 @@
+# Kubernetes AI Conformance Checklist
+# Notes: This checklist is based on the Kubernetes AI Conformance document.
+# Participants should fill in the 'status', 'evidence', and 'notes' fields for each requirement.
+
+metadata:
+  kubernetesVersion: v1.35
+  platformName: "Nutanix Kubernetes Platform"
+  platformVersion: "v2.18.0"
+  vendorName: "Nutanix"
+  websiteUrl: "https://www.nutanix.com/products/kubernetes-management-platform"
+  documentationUrl: "https://nutanix-cloud-native.github.io/nkp-partner-catalog/docs/ai-conformance/2.18"
+  productLogoUrl: "https://landscape.cncf.io/logos/e431a53fad410e45d90fce820e01c56269b184f24b5b97b190ba65ce7fbfd51a.svg"
+  description: "Nutanix Kubernetes Platform (NKP) is an enterprise-grade platform for deploying, managing, and operating Kubernetes clusters across on-premises, hybrid, and multi-cloud environments. NKP provides a curated catalog of AI/ML applications with one-click deployment via Flux CD, GPU operator integration, and full lifecycle management."
+  contactEmailAddress: "nkp@nutanix.com"
+  k8sConformanceUrl: "https://github.com/cncf/k8s-conformance/tree/master/v1.35/konvoy"
+
+spec:
+  accelerators:
+    - id: dra_support
+      description: "Support Dynamic Resource Allocation (DRA) APIs to enable more flexible and fine-grained resource requests beyond simple counts."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "https://nutanix-cloud-native.github.io/nkp-partner-catalog/docs/ai-conformance/2.18#support-dynamic-resource-allocation-dra"
+      notes: "The DRA v1 API group (resource.k8s.io/v1) is GA in Kubernetes 1.34+ and enabled by default on NKP 2.18 (Kubernetes 1.35.2) — no driver or extra configuration is required for the APIs to be served. Verified: kubectl api-resources --api-group=resource.k8s.io returns DeviceClass, ResourceClaim, ResourceClaimTemplate, and ResourceSlice at resource.k8s.io/v1. On the shipped NKP configuration GPUs are allocated via the NVIDIA device plugin; the DRA APIs are available for DRA-aware drivers that consume them."
+    - id: driver_runtime_management
+      description: "Provide a verifiable mechanism for ensuring that compatible accelerator drivers and corresponding container runtime configurations are correctly installed and maintained on nodes with accelerators. Once the accelerator supports exposing driver and runtime version information as part of DRA, then the platform should use the DRA mechanism for verification."
+      level: SHOULD
+      status: "Implemented"
+      evidence:
+        - "https://nutanix-cloud-native.github.io/nkp-partner-catalog/docs/ai-conformance/2.18#driver-runtime-management"
+      notes: "NKP ships the NVIDIA GPU Operator (v26.3.0) as a platform component to manage accelerator drivers, container toolkit, device plugin, and runtime configuration on GPU nodes."
+    - id: gpu_sharing
+      description: "For accelerators that support static GPU sharing, provide well-defined mechanisms for at least one GPU sharing strategy to improve utilization for workloads that do not require a full dedicated GPU. If hardware-level partitioning is supported, then these fractional GPU resources should be exposed as schedulable resources. If software-based sharing (e.g. time-slicing) is supported, then oversubscription of GPUs should be allowed. Forward-looking: Once the accelerator supports static GPU sharing as part of DRA, the platform should expose the DRA mechanism to allow users to leverage static GPU sharing. Once the accelerator supports dynamic GPU sharing as part of DRA and the partitionable devices feature is GA, the platform should expose the DRA mechanism to allow users to leverage dynamic GPU sharing."
+      level: SHOULD
+      status: "Implemented"
+      evidence:
+        - "https://nutanix-cloud-native.github.io/nkp-partner-catalog/docs/ai-conformance/2.18#gpu-sharing"
+      notes: "NKP satisfies GPU sharing through the NVIDIA GPU Operator (already shipped as a platform component) using time-slicing (software-based oversubscription), which works on every NVIDIA GPU. Verified on an NVIDIA A40: the device plugin was configured to advertise the single physical GPU as 4 schedulable nvidia.com/gpu slices (node labels gpu.count=1, gpu.replicas=4, gpu.product=NVIDIA-A40-SHARED, gpu.sharing-strategy=time-slicing; capacity/allocatable nvidia.com/gpu=4). A Deployment of 4 pods each requesting nvidia.com/gpu=1 was all scheduled onto that one node, and nvidia-smi -L in every pod reported the identical physical GPU UUID (GPU-ff400afb-...), proving true oversubscription of a single GPU."
+    - id: virtualized_accelerator
+      description: "For accelerators that support virtualized accelerator technologies (e.g. vGPU), provide well-defined mechanisms for these to be exposed and managed, maintaining consistency with physical fractional GPUs. Forward-looking: Once the accelerator supports virtualized accelerator technologies as part of DRA, then the platform should use the DRA mechanism."
+      level: SHOULD
+      status: "Implemented"
+      evidence:
+        - "https://nutanix-cloud-native.github.io/nkp-partner-catalog/docs/ai-conformance/2.18#virtualized-accelerator-vgpu"
+      notes: "NKP supports vGPU natively: since 2.16 worker node pools can be created as vGPU-enabled node pools (in addition to GPU passthrough) on Nutanix AHV and VMware vSphere. The NVIDIA GPU Operator (vGPU mode, licensed via the NVIDIA License System) exposes each virtual GPU as a standard nvidia.com/gpu resource through the same device plugin as physical GPUs, so vGPUs are scheduled, monitored (DCGM), and node-pool-autoscaled identically to physical GPUs. Verified on an AHV GPU worker: the GPU Operator's feature-discovery labels (nvidia.com/gpu.machine=AHV, nvidia.com/vgpu.present) and the device plugin surface the accelerator as nvidia.com/gpu; the same stack reports vgpu.present=true and exposes vGPU profiles on vGPU node pools. Forward-looking: the optional NVIDIA DRA driver provides a DRA path for GPU allocation as vGPU-over-DRA matures."
+  networking:
+    - id: ai_inference
+      description: "Support the Kubernetes Gateway API with an implementation for advanced traffic management for inference services, which enables capabilities like weighted traffic splitting, header-based routing (for OpenAI protocol headers), and optional integration with service meshes."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "https://nutanix-cloud-native.github.io/nkp-partner-catalog/docs/ai-conformance/2.18#support-the-gateway-api"
+      notes: "NKP ships the Gateway API CRDs (gateway.networking.k8s.io/v1) out of the box and provides Envoy Gateway (CNCF Gateway API implementation) in the Nutanix Products catalog for advanced inference traffic management. Verified: installed Envoy Gateway, registered a GatewayClass (Accepted=True) and a Gateway (Programmed=True with a platform LoadBalancer address), and demonstrated both required capabilities against two model backends via a single HTTPRoute — weighted traffic splitting (50 requests split 40/10, matching the configured 80/20) and header-based routing (x-model-version: canary pinned 5/5 to model-v2). GRPCRoute, TLS, and service-mesh (Istio) integration are also supported."
+  schedulingOrchestration:
+    - id: gang_scheduling
+      description: "The platform must allow for the installation and successful operation of at least one gang scheduling solution that ensures all-or-nothing scheduling for distributed AI workloads (e.g. Kueue, Volcano, etc.) To be conformant, the vendor must demonstrate that their platform can successfully run at least one such solution."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "https://nutanix-cloud-native.github.io/nkp-partner-catalog/docs/ai-conformance/2.18#gang-scheduling"
+      notes: "NKP ships Kueue (kueue.x-k8s.io/v1beta2) in the AI Applications catalog and runs it successfully. All-or-nothing scheduling verified: a 3-pod job fitting the ClusterQueue quota is admitted atomically (all pods Running), while an oversized 4-pod gang (8 CPU vs 4 CPU quota) is refused in full — the Workload stays Pending with QuotaReserved=False, the job stays suspended, and zero pods are placed even though some would individually fit. The pending gang is admitted as a whole once quota frees. The same quota-based admission governs nvidia.com/gpu for distributed training/inference."
+    - id: cluster_autoscaling
+      description: "If the platform provides a cluster autoscaler or an equivalent mechanism, it must be able to scale up/down node groups containing specific accelerator types based on pending pods requesting those accelerators."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "https://nutanix-cloud-native.github.io/nkp-partner-catalog/docs/ai-conformance/2.18#cluster-autoscaling"
+      notes: "NKP is built on Cluster API and deploys the upstream Kubernetes Cluster Autoscaler (clusterapi cloud provider) for managed clusters, uniformly across cloud, hybrid, Nutanix, vSphere, and pre-provisioned infrastructure. Each node pool is a MachineDeployment node group with min/max bounds; GPU node pools are independent groups. Verified: the autoscaler discovered the GPU node pool as its own node group (MachineDeployment/kommander/dlipovetsky-gpu-jz4tk) and scales accelerator nodes based on pending nvidia.com/gpu pods."
+    - id: pod_autoscaling
+      description: "If the platform supports the HorizontalPodAutoscaler, it must function correctly for pods utilizing accelerators. This includes the ability to scale these Pods based on custom metrics relevant to AI/ML workloads."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "https://nutanix-cloud-native.github.io/nkp-partner-catalog/docs/ai-conformance/2.18#horizontal-pod-autoscaler"
+      notes: "NKP ships the Prometheus Adapter, which serves both the resource metrics API (metrics.k8s.io) and the custom metrics API (custom.metrics.k8s.io), surfacing DCGM GPU metrics. Verified: an HPA scaling a GPU-consuming Deployment on the DCGM_FI_DEV_GPU_UTIL custom metric (HPA read 100 vs target 70 and issued a SuccessfulRescale)."
+  observability:
+    - id: accelerator_metrics
+      description: "For supported accelerator types, the platform must allow for the installation and successful operation of at least one accelerator metrics solution that exposes fine-grained performance metrics via a standardized, machine-readable metrics endpoint. This must include a core set of metrics for per-accelerator utilization and memory usage. Additionally, other relevant metrics such as temperature, power draw, and interconnect bandwidth should be exposed if the underlying hardware or virtualization layer makes them available. The list of metrics should align with emerging standards, such as OpenTelemetry metrics, to ensure interoperability. The platform may provide a managed solution, but this is not required for conformance."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "https://nutanix-cloud-native.github.io/nkp-partner-catalog/docs/ai-conformance/2.18#accelerator-performance-metrics"
+      notes: "NKP ships the NVIDIA GPU Operator which includes DCGM Exporter, exposing per-GPU utilization, memory usage, temperature, power draw, and interconnect metrics via Prometheus-compatible endpoints."
+    - id: ai_service_metrics
+      description: "Provide a monitoring system capable of discovering and collecting metrics from workloads that expose them in a standard format (e.g. Prometheus exposition format). This ensures easy integration for collecting key metrics from common AI frameworks and servers."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "https://nutanix-cloud-native.github.io/nkp-partner-catalog/docs/ai-conformance/2.18#ai-job-and-inference-service-metrics"
+      notes: "NKP includes kube-prometheus-stack (Grafana, Prometheus, Alertmanager), Loki, Thanos, and Prometheus Adapter as platform components. Prometheus auto-discovers workload metrics via ServiceMonitor/PodMonitor. Verified with two AI Applications catalog workloads: Kueue (AI job queueing) exposing kueue_* admission/quota metrics, and KServe (model inference) exposing per-model request latency histograms in Prometheus format."
+  security:
+    - id: secure_accelerator_access
+      description: "Ensure that access to accelerators from within containers is properly isolated and mediated by the Kubernetes resource management framework (device plugin or DRA) and container runtime, preventing unauthorized access or interference between workloads."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "https://nutanix-cloud-native.github.io/nkp-partner-catalog/docs/ai-conformance/2.18#secure-accelerator-access"
+      notes: "GPU access is mediated by the NVIDIA device plugin and the container runtime (nvidia RuntimeClass) through the Kubernetes resource-management framework. Verified: a pod that explicitly requests nvidia.com/gpu is granted exactly one GPU (confirmed with nvidia-smi), a second GPU-requesting pod stays Pending once the node's single GPU is allocated (capacity enforced), and a pod that does not request nvidia.com/gpu has no GPU access."
+  operator:
+    - id: robust_controller
+      description: "The platform must prove that at least one complex AI operator with a CRD (e.g., Ray, Kubeflow) can be installed and functions reliably. This includes verifying that the operator's pods run correctly, its webhooks are operational, and its custom resources can be reconciled."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "https://nutanix-cloud-native.github.io/nkp-partner-catalog/docs/ai-conformance/2.18#robust-crd-and-controller-operation"
+      notes: "NKP runs complex AI operators with CRDs from the AI Applications catalog. Verified with the Slurm Operator (slinky.slurm.net/v1beta1): controller pods run correctly, its validating/mutating webhooks are operational (a malformed NodeSet is rejected by the webhook), and its custom resources reconcile. Additional CRD-based operators available in the catalog include kagent and Milvus Operator."
