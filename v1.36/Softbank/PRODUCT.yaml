@@ -1,0 +1,182 @@
+# Kubernetes AI Conformance Checklist
+# Notes: This checklist is based on the Kubernetes AI Conformance document.
+# Participants should fill in the 'status', 'evidence', and 'notes' fields for each requirement.
+#
+# Evidence URLs below point to the public repo https://github.com/tdiallo29/infrinia-conformance-evidence
+# (raw.githubusercontent.com), which mirrors the raw test-run artifacts referenced here.
+
+metadata:
+  kubernetesVersion: v1.36
+  platformName: "Infrinia AI Cloud OS"
+  platformVersion: "v1.0.1-rc"
+  vendorName: "Infrinia"
+  websiteUrl: "https://www.infrinia.ai"
+  repoUrl: "https://github.com/tdiallo29/infrinia-conformance-evidence"
+  documentationUrl: "https://www.infrinia.ai"
+  productLogoUrl: "https://gist.githubusercontent.com/tdiallo29/4f9ce82cba11650cca30e869d9fed9dd/raw/f6887de7b3d036de40bd6731177839da8059455a/softbank.svg"
+  description: "Infrinia AI Cloud OS is a GPU-native managed Kubernetes platform purpose-built for AI and ML workloads, providing automated GPU infrastructure provisioning, Kubernetes cluster orchestration, and MLOps tooling on GPU hardware."
+  contactEmailAddress: "thierno.diallo@g.softbank.co.jp"
+
+spec:
+  accelerators:
+    - id: driver_runtime_management
+      description: "Provide a verifiable mechanism for ensuring that compatible accelerator drivers and corresponding container runtime configurations are correctly installed and maintained on nodes with accelerators. Once the accelerator supports exposing driver and runtime version information as part of DRA, then the platform should use the DRA mechanism for verification."
+      level: SHOULD
+      status: "Implemented"
+      evidence:
+        - "https://raw.githubusercontent.com/tdiallo29/infrinia-conformance-evidence/main/accelerators/with_gpu_request_output.txt"
+        - "https://raw.githubusercontent.com/tdiallo29/infrinia-conformance-evidence/main/accelerators/nvidia_rbac.txt"
+        - "https://raw.githubusercontent.com/tdiallo29/infrinia-conformance-evidence/main/accelerators/device_plugin.yaml"
+        - "https://raw.githubusercontent.com/tdiallo29/infrinia-conformance-evidence/main/accelerators/dra_e2e.log"
+        - "https://raw.githubusercontent.com/tdiallo29/infrinia-conformance-evidence/main/accelerators/dra_junit_01.xml"
+        - "https://raw.githubusercontent.com/tdiallo29/infrinia-conformance-evidence/main/accelerators/DRA_CONFORMANCE_JUSTIFICATION.md"
+        - "https://github.com/tdiallo29/infrinia-conformance-evidence/tree/main/accelerators"
+        - "https://github.com/tdiallo29/infrinia-conformance-evidence/blob/main/accelerators/README.md"
+      notes: "The NVIDIA GPU Operator manages driver and container-runtime installation/validation on all GPU nodes. nvidia-smi output confirms a consistent, verifiable driver version (580.159.04) and CUDA version (13.0) on the allocated GPU. RBAC (nvidia-device-plugin, nvidia-operator-validator, nvidia-gpu-feature-discovery ClusterRoles) protects the components that perform this validation. Dynamic Resource Allocation (DRA) support is also confirmed: the DRA e2e suite was run via Hydrophone on Kubernetes v1.36 (resource.k8s.io/v1, GA by default) and passed 42 of 51 executed tests. The 9 remaining are justified, not platform defects: 4 target resource.k8s.io/v1beta1/v1beta2 endpoints removed at GA (expected 404s once the API graduated to v1), and 5 require Alpha/Beta feature gates (DRAPartitionableDevices, DRAConsumableCapacity, DRADeviceTaints) that are intentionally inactive because this platform does not support GPU slicing/sharing (see gpu_sharing). DRA-based exposure of driver/runtime version info specifically is forward-looking and not yet implemented."
+    - id: gpu_sharing
+      description: "For accelerators that support static GPU sharing, provide well-defined mechanisms for at least one GPU sharing strategy to improve utilization for workloads that do not require a full dedicated GPU. If hardware-level partitioning is supported, then these fractional GPU resources should be exposed as schedulable resources. If software-based sharing (e.g. time-slicing) is supported, then oversubscription of GPUs should be allowed. Forward-looking: Once the accelerator supports static GPU sharing as part of DRA, the platform should expose the DRA mechanism to allow users to leverage static GPU sharing. Once the accelerator supports dynamic GPU sharing as part of DRA and the partitionable devices feature is GA, the platform should expose the DRA mechanism to allow users to leverage dynamic GPU sharing."
+      level: SHOULD
+      status: "Not Implemented"
+      evidence: []
+      notes: "This platform version allocates one full GPU exclusively per pod. No MIG partitioning, time-slicing, or fractional/oversubscribed GPU sharing is supported; this is an intentional design choice favoring workload isolation and predictable performance. Confirmed by DRA e2e results: DRAConsumableCapacity and DRAPartitionableDevices tests are excluded because no sharing/partitioning mechanism is active (see DRA_CONFORMANCE_JUSTIFICATION.md, Category 1 — linked under driver_runtime_management evidence)."
+    - id: virtualized_accelerator
+      description: "For accelerators that support virtualized accelerator technologies (e.g. vGPU), provide well-defined mechanisms for these to be exposed and managed, maintaining consistency with physical fractional GPUs. Forward-looking: Once the accelerator supports virtualized accelerator technologies as part of DRA, then the platform should use the DRA mechanism."
+      level: SHOULD
+      status: "N/A"
+      evidence: []
+      notes: "Platform runs on bare-metal GPU nodes (NVIDIA H100 NVL / GB200 NVL72) with no hypervisor layer, so vGPU or other virtualized accelerator technologies are not applicable to this deployment model."
+  networking:
+    - id: ai_inference
+      description: "Support the Kubernetes Gateway API with an implementation for advanced traffic management for inference services, which enables capabilities like weighted traffic splitting, header-based routing (for OpenAI protocol headers), and optional integration with service meshes."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "https://raw.githubusercontent.com/tdiallo29/infrinia-conformance-evidence/main/networking/gateway_crds.txt"
+        - "https://raw.githubusercontent.com/tdiallo29/infrinia-conformance-evidence/main/networking/gatewayclass_status.txt"
+        - "https://raw.githubusercontent.com/tdiallo29/infrinia-conformance-evidence/main/networking/gateway_api_evidence.yaml"
+        - "https://raw.githubusercontent.com/tdiallo29/infrinia-conformance-evidence/main/networking/gateway_describe.txt"
+        - "https://raw.githubusercontent.com/tdiallo29/infrinia-conformance-evidence/main/networking/gateway_routing_test.txt"
+        - "https://raw.githubusercontent.com/tdiallo29/infrinia-conformance-evidence/main/networking/cilium_envoy_config.yaml"
+        - "https://github.com/tdiallo29/infrinia-conformance-evidence/tree/main/networking"
+        - "https://github.com/tdiallo29/infrinia-conformance-evidence/blob/main/networking/README.md"
+      notes: "Cilium 1.19.4 with Gateway API v1.2.0 CRDs. GatewayClass 'cilium' is Accepted=True. An HTTPRoute with two model backends (model-v1/model-v2) demonstrates weighted traffic splitting (90/10, confirmed 9:1 over 10 requests) and header-based routing (x-model-version: v2 routed to v2 on 10/10 requests, overriding the weighted rule). Envoy dataplane confirmed via 'server: envoy' response headers and CiliumEnvoyConfig."
+    - id: advanced_inference_ingress
+      description: "Support an implementation of the Gateway API Inference Extension (GAIE), which can route requests to models hosted on Kubernetes. The implementation supports serving LLMs and making advanced routing decisions (e.g., K/V cache-aware routing) based on metrics and capabilities advertised by the underlying model serving platform."
+      level: SHOULD
+      status: "Not Implemented"
+      evidence: []
+      notes: "Gateway API Inference Extension (GAIE) is not currently deployed on this platform. No K/V cache-aware routing or model-serving-aware request scheduling has been validated for this submission."
+    - id: high_performance_networking
+      description: "If high performance pod-to-pod communication is needed, then provide well-defined mechanisms for these specialized network resources to be managed and exposed such that their characteristics should be discoverable to enable informed scheduling or workload configuration and to enable pods to attach to multiple network interfaces. Platforms should use DRA as the mechanism to manage and expose these specialized network resources (e.g., DRANET)."
+      level: SHOULD
+      status: "Not Implemented"
+      evidence: []
+      notes: "No specialized high-performance pod-to-pod networking (e.g., RDMA/DRANET-managed NICs, multi-NIC attachment) has been deployed or tested on this platform for this submission."
+    - id: disaggregated_inference
+      description: "Support the deployment and operation of disaggregated inference architectures. To be conformant, the platform should demonstrate that it can successfully install and run a disaggregated inference solution (e.g., vLLM, SGLang, llm-d, or Dynamo, with separate instances for distinct phases like prefill and decode). Disaggregated serving splits phases such as prefill and decode into separately scalable components so each phase can match different compute/memory/network needs, improving GPU utilization and tail latency while enabling higher throughput under mixed and bursty LLM workloads."
+      level: SHOULD
+      status: "Implemented"
+      evidence:
+        - "https://raw.githubusercontent.com/tdiallo29/infrinia-conformance-evidence/main/networking/dynamo_operator_pods.txt"
+        - "https://raw.githubusercontent.com/tdiallo29/infrinia-conformance-evidence/main/networking/dynamo_crds.txt"
+        - "https://raw.githubusercontent.com/tdiallo29/infrinia-conformance-evidence/main/networking/dynamo_pods.txt"
+        - "https://raw.githubusercontent.com/tdiallo29/infrinia-conformance-evidence/main/networking/dynamo_deploy_svc.txt"
+        - "https://raw.githubusercontent.com/tdiallo29/infrinia-conformance-evidence/main/networking/dynamo_graphdeployment.yaml"
+        - "https://raw.githubusercontent.com/tdiallo29/infrinia-conformance-evidence/main/networking/dynamo_worker_args.txt"
+        - "https://raw.githubusercontent.com/tdiallo29/infrinia-conformance-evidence/main/networking/dynamo_prefill_describe.txt"
+        - "https://raw.githubusercontent.com/tdiallo29/infrinia-conformance-evidence/main/networking/dynamo_decode_describe.txt"
+        - "https://raw.githubusercontent.com/tdiallo29/infrinia-conformance-evidence/main/networking/dynamo_frontend_describe.txt"
+        - "https://raw.githubusercontent.com/tdiallo29/infrinia-conformance-evidence/main/networking/dynamo_prefill_worker_logs.txt"
+        - "https://raw.githubusercontent.com/tdiallo29/infrinia-conformance-evidence/main/networking/dynamo_decode_worker_logs.txt"
+        - "https://raw.githubusercontent.com/tdiallo29/infrinia-conformance-evidence/main/networking/dynamo_frontend_logs.txt"
+        - "https://raw.githubusercontent.com/tdiallo29/infrinia-conformance-evidence/main/networking/dynamo_nats_logs.txt"
+        - "https://raw.githubusercontent.com/tdiallo29/infrinia-conformance-evidence/main/networking/dynamo_inference_test.txt"
+        - "https://github.com/tdiallo29/infrinia-conformance-evidence/tree/main/networking"
+        - "https://github.com/tdiallo29/infrinia-conformance-evidence/blob/main/networking/README.md"
+      notes: "NVIDIA Dynamo platform (operator + NATS) installed in the infrinia-ep-platform-system namespace; 7 Dynamo CRDs registered (dynamographdeployments.nvidia.com, dynamomodels.nvidia.com, etc.). A DynamoGraphDeployment (vllm-disagg-0) in infrinia-ep-confend3 serves meta-llama/Llama-3.1-8B-Instruct and reconciled to its declared topology: 1 Frontend + 2 VllmPrefillWorker + 6 VllmDecodeWorker pods, all Running with 0 restarts, each role backed by its own ClusterIP Service. Launch args confirm each worker is pinned to a single phase (--is-prefill-worker vs --is-decode-worker), sharing a PdConnector/NixlConnector kv-transfer-config that hands the KV cache from prefill to decode. Worker logs independently confirm NIXL agent initialization on both roles and Dynamo's own runtime-detected role ('Decode worker detected (disaggregation_mode=decode)' on the decode pod; '--is-prefill-worker' + 'KV transfer (P/D disaggregation) is enabled' on the prefill pod) and TRTLLM attention being disabled to accommodate KV transfer. An end-to-end chat completion sent through the Frontend service returned finish_reason=stop in 80.5ms (43 prompt tokens, 2 completion tokens), confirming the disaggregated pipeline serves correct inference, not just topology."
+  schedulingOrchestration:
+    - id: gang_scheduling
+      description: "The platform must allow for the installation and successful operation of at least one gang scheduling solution that ensures all-or-nothing scheduling for distributed AI workloads (e.g. Kueue, Volcano, etc.) To be conformant, the vendor must demonstrate that their platform can successfully run at least one such solution."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "https://raw.githubusercontent.com/tdiallo29/infrinia-conformance-evidence/main/scheduling/volcano_pods.txt"
+        - "https://raw.githubusercontent.com/tdiallo29/infrinia-conformance-evidence/main/scheduling/gang_pods.txt"
+        - "https://raw.githubusercontent.com/tdiallo29/infrinia-conformance-evidence/main/scheduling/gang_scheduling_evidence.yaml"
+        - "https://raw.githubusercontent.com/tdiallo29/infrinia-conformance-evidence/main/scheduling/volcano_scheduler_logs.txt"
+        - "https://github.com/tdiallo29/infrinia-conformance-evidence/tree/main/scheduling"
+        - "https://github.com/tdiallo29/infrinia-conformance-evidence/blob/main/scheduling/README.md"
+      notes: "Volcano installed via Helm (volcano-system namespace); volcano-admission, volcano-controllers, and volcano-scheduler all Running. A Volcano Job (minAvailable: 2, queue: gang-queue) demonstrates all-or-nothing scheduling: both worker pods started simultaneously (identical AGE=3s) on two separate nodes; the PodGroup reports Phase: Running, Running: 2; scheduler logs confirm 'tasks in gang are ready to be scheduled'."
+    - id: cluster_autoscaling
+      description: "If the platform provides a cluster autoscaler or an equivalent mechanism, it must be able to scale up/down node groups containing specific accelerator types based on pending pods requesting those accelerators."
+      level: MUST
+      status: "N/A"
+      evidence: []
+      notes: "Platform is deployed on a static, bare-metal Kubernetes cluster with a fixed node pool provisioned at cluster creation. There is no cloud-provider integration, node-group concept, or infrastructure API through which GPU nodes could be dynamically provisioned. N/A is accepted per the criterion's explicit allowance for on-prem fixed-size clusters."
+    - id: pod_autoscaling
+      description: "If the platform supports the HorizontalPodAutoscaler, it must function correctly for pods utilizing accelerators. This includes the ability to scale these Pods based on custom metrics relevant to AI/ML workloads."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "https://raw.githubusercontent.com/tdiallo29/infrinia-conformance-evidence/main/scheduling/keda_pods.txt"
+        - "https://raw.githubusercontent.com/tdiallo29/infrinia-conformance-evidence/main/scheduling/keda_apiservice.txt"
+        - "https://raw.githubusercontent.com/tdiallo29/infrinia-conformance-evidence/main/scheduling/pod_autoscaling_scaledobject.yaml"
+        - "https://raw.githubusercontent.com/tdiallo29/infrinia-conformance-evidence/main/scheduling/pod_autoscaling_describe.txt"
+        - "https://raw.githubusercontent.com/tdiallo29/infrinia-conformance-evidence/main/scheduling/pod_autoscaling_hpa.yaml"
+        - "https://raw.githubusercontent.com/tdiallo29/infrinia-conformance-evidence/main/scheduling/pod_autoscaling_hpa_scaled.txt"
+        - "https://raw.githubusercontent.com/tdiallo29/infrinia-conformance-evidence/main/scheduling/keda_events.txt"
+        - "https://github.com/tdiallo29/infrinia-conformance-evidence/tree/main/scheduling"
+        - "https://github.com/tdiallo29/infrinia-conformance-evidence/blob/main/scheduling/README.md"
+      notes: "KEDA installed (keda namespace); external metrics API v1beta1.external.metrics.k8s.io registered. ScaledObject 'gpu-utilization-scaler' targets the inference-hpa-test deployment via a Prometheus trigger querying avg(DCGM_FI_DEV_GPU_UTIL) against the platform's existing Prometheus. Under GPU load, the KEDA-managed HPA scaled the deployment from 1 to 4 replicas (SuccessfulRescale event observed); the additional pods correctly remained Pending once available GPUs (one H100 NVL per node, no sharing) were exhausted, confirming both custom-metric autoscaling and GPU resource isolation."
+  observability:
+    - id: accelerator_metrics
+      description: "For supported accelerator types, the platform must allow for the installation and successful operation of at least one accelerator metrics solution that exposes fine-grained performance metrics via a standardized, machine-readable metrics endpoint. This must include a core set of metrics for per-accelerator utilization and memory usage. Additionally, other relevant metrics such as temperature, power draw, and interconnect bandwidth should be exposed if the underlying hardware or virtualization layer makes them available. The list of metrics should align with emerging standards, such as OpenTelemetry metrics, to ensure interoperability. The platform may provide a managed solution, but this is not required for conformance."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "https://raw.githubusercontent.com/tdiallo29/infrinia-conformance-evidence/main/observability/ai_gpu_util_metrics.json"
+        - "https://raw.githubusercontent.com/tdiallo29/infrinia-conformance-evidence/main/observability/ai_gpu_memory_metrics.json"
+        - "https://raw.githubusercontent.com/tdiallo29/infrinia-conformance-evidence/main/observability/prometheus_targets.json"
+        - "https://raw.githubusercontent.com/tdiallo29/infrinia-conformance-evidence/main/observability/ai_service_metrics_stack.txt"
+        - "https://github.com/tdiallo29/infrinia-conformance-evidence/tree/main/observability"
+        - "https://github.com/tdiallo29/infrinia-conformance-evidence/blob/main/observability/README.md"
+      notes: "NVIDIA DCGM Exporter (deployed by the GPU Operator) runs as a DaemonSet on every GPU node and is scraped by the platform Prometheus. Under an N-body GPU burn workload, DCGM_FI_DEV_GPU_UTIL confirmed 100% per-accelerator utilization and DCGM_FI_DEV_FB_USED confirmed 672 MiB memory usage, both carrying per-pod attribution (exported_pod label) for multi-tenant observability."
+    - id: ai_service_metrics
+      description: "Provide a monitoring system capable of discovering and collecting metrics from workloads that expose them in a standard format (e.g. Prometheus exposition format). This ensures easy integration for collecting key metrics from common AI frameworks and servers."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "https://raw.githubusercontent.com/tdiallo29/infrinia-conformance-evidence/main/observability/ai-service-monitor.yaml"
+        - "https://raw.githubusercontent.com/tdiallo29/infrinia-conformance-evidence/main/observability/ai-metrics-test.yaml"
+        - "https://raw.githubusercontent.com/tdiallo29/infrinia-conformance-evidence/main/observability/prometheus_targets.json"
+        - "https://github.com/tdiallo29/infrinia-conformance-evidence/tree/main/observability"
+        - "https://github.com/tdiallo29/infrinia-conformance-evidence/blob/main/observability/README.md"
+      notes: "Platform Prometheus/Grafana stack (infrinia-tenant-observability namespace) auto-discovers scrape targets via ServiceMonitor custom resources. 41 active targets confirmed healthy, including nvidia-dcgm-exporter on each GPU node and a sample AI service (ai-metrics-test-svc) exposing Prometheus-format metrics, demonstrating standard discovery and collection from AI workloads."
+  security:
+    - id: secure_accelerator_access
+      description: "Ensure that access to accelerators from within containers is properly isolated and mediated by the Kubernetes resource management framework (device plugin or DRA) and container runtime, preventing unauthorized access or interference between workloads."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "https://raw.githubusercontent.com/tdiallo29/infrinia-conformance-evidence/main/security/no_gpu_request_output.txt"
+        - "https://raw.githubusercontent.com/tdiallo29/infrinia-conformance-evidence/main/security/with_gpu_request_output.txt"
+        - "https://raw.githubusercontent.com/tdiallo29/infrinia-conformance-evidence/main/security/with_gpu_pod_describe.txt"
+        - "https://raw.githubusercontent.com/tdiallo29/infrinia-conformance-evidence/main/security/device_plugin.yaml"
+        - "https://raw.githubusercontent.com/tdiallo29/infrinia-conformance-evidence/main/security/nvidia_rbac.txt"
+        - "https://github.com/tdiallo29/infrinia-conformance-evidence/tree/main/security"
+        - "https://github.com/tdiallo29/infrinia-conformance-evidence/blob/main/security/README.md"
+      notes: "The NVIDIA device plugin (deployed by the GPU Operator) mediates GPU access at the container level. A pod without an nvidia.com/gpu resource request received no driver libraries/device nodes (nvidia-smi: not found, GPU_ACCESS_DENIED). A pod with limits: nvidia.com/gpu: \"1\" was granted full, exclusive access to an NVIDIA H100 NVL GPU (nvidia-smi confirmed Driver 580.159.04 / CUDA 13.0, GPU_ACCESS_SUCCEEDED). Isolation is enforced at the container runtime level and protected by dedicated ClusterRoles/ClusterRoleBindings (nvidia-device-plugin, nvidia-operator-validator)."
+  operator:
+    - id: robust_controller
+      description: "The platform must prove that at least one complex AI operator with a CRD (e.g., Ray, Kubeflow) can be installed and functions reliably. This includes verifying that the operator's pods run correctly, its webhooks are operational, and its custom resources can be reconciled."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "https://raw.githubusercontent.com/tdiallo29/infrinia-conformance-evidence/main/operator/ray_operator_pods.txt"
+        - "https://raw.githubusercontent.com/tdiallo29/infrinia-conformance-evidence/main/operator/ray_crds.txt"
+        - "https://raw.githubusercontent.com/tdiallo29/infrinia-conformance-evidence/main/operator/ray_cluster_describe.txt"
+        - "https://raw.githubusercontent.com/tdiallo29/infrinia-conformance-evidence/main/operator/rayjob_describe.txt"
+        - "https://raw.githubusercontent.com/tdiallo29/infrinia-conformance-evidence/main/operator/ray_resources.yaml"
+        - "https://github.com/tdiallo29/infrinia-conformance-evidence/tree/main/operator"
+        - "https://github.com/tdiallo29/infrinia-conformance-evidence/blob/main/operator/README.md"
+      notes: "KubeRay operator v1.2.0 installed via Helm (ray-system namespace); operator pod Running with rayclusters.ray.io, rayjobs.ray.io, and rayservices.ray.io CRDs registered. A RayCluster custom resource reconciled to State: ready with head and worker pods Running. A RayJob (entrypoint: ray.init() smoke test) completed with Job Status: SUCCEEDED, confirming reliable CRD reconciliation end to end. Note: KubeRay 1.2.0 ships no admission webhooks in its Helm chart; validation is handled internally by the operator's reconciliation loop, which is demonstrated by the successful RayCluster/RayJob reconciliation above."
