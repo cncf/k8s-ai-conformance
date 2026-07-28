@@ -1,0 +1,123 @@
+# Kubernetes AI Conformance Checklist
+# Notes: This checklist is based on the Kubernetes AI Conformance document.
+# Participants should fill in the 'status', 'evidence', and 'notes' fields for each requirement.
+
+metadata:
+  kubernetesVersion: v1.35
+  platformName: DaoCloud Enterprise
+  platformVersion: v5.0
+  vendorName: DaoCloud
+  websiteUrl: https://docs.daocloud.io/
+  documentationUrl: https://download.daocloud.io/DaoCloud_Enterprise/DaoCloud_Enterprise
+  productLogoUrl: https://raw.githubusercontent.com/DaoCloud/DaoCloud-docs/main/docs/en/docs/images/DaoCloud.svg
+  description: 'Daocloud helps you provide a reliable and consistent basic support environment to meet the high SLA requirements of enterprise critical applications.'
+  contactEmailAddress: panyintian.fu@daocloud.io
+  k8sConformanceUrl: https://github.com/cncf/k8s-conformance/tree/master/v1.35/daocloud
+
+spec:
+  accelerators:
+    - id: dra_support
+      description: "Support Dynamic Resource Allocation (DRA) APIs to enable more flexible and fine-grained resource requests beyond simple counts."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "e2e.log"
+        - "junit_01.xml"
+      notes: "test code: https://github.com/carlory/ai-conformance/blob/c4b99e98160525e78e475165a72b0c920501f57c/e2e/ai/accelerators.go#L15"
+    - id: driver_runtime_management
+      description: "Provide a verifiable mechanism for ensuring that compatible accelerator drivers and corresponding container runtime configurations are correctly installed and maintained on nodes with accelerators. Once the accelerator supports exposing driver and runtime version information as part of DRA, then the platform should use the DRA mechanism for verification."
+      level: SHOULD
+      status: "Implemented"
+      evidence:
+        - "https://docs.daocloud.io/en/kpanda/user-guide/gpu/nvidia/install_nvidia_driver_of_operator/"
+        - "https://docs.daocloud.io/en/kpanda/user-guide/gpu/nvidia/"
+      notes: "The NVIDIA GPU Operator, deployed via the nvidia/gpu-operator Helm chart, is responsible for the installation, configuration, and lifecycle management of NVIDIA drivers and the container runtime on DCE5 worker nodes."
+    - id: gpu_sharing
+      description: "For accelerators that support static GPU sharing, provide well-defined mechanisms for at least one GPU sharing strategy to improve utilization for workloads that do not require a full dedicated GPU. If hardware-level partitioning is supported, then these fractional GPU resources should be exposed as schedulable resources. If software-based sharing (e.g. time-slicing) is supported, then oversubscription of GPUs should be allowed. Forward-looking: Once the accelerator supports static GPU sharing as part of DRA, the platform should expose the DRA mechanism to allow users to leverage static GPU sharing. Once the accelerator supports dynamic GPU sharing as part of DRA and the partitionable devices feature is GA, the platform should expose the DRA mechanism to allow users to leverage dynamic GPU sharing."
+      level: SHOULD
+      status: "Implemented"
+      evidence:
+        - "https://docs.daocloud.io/en/kpanda/user-guide/gpu/nvidia/mig/"
+        - "https://docs.daocloud.io/en/kpanda/user-guide/gpu/nvidia/"
+      notes: "NVIDIA Multi-Instance GPU (MIG) is a new feature introduced by NVIDIA on H100, A100, and A30 series GPUs. Its purpose is to divide a physical GPU into multiple GPU instances to provide finer-grained resource sharing and isolation."
+    - id: virtualized_accelerator
+      description: "For accelerators that support virtualized accelerator technologies (e.g. vGPU), provide well-defined mechanisms for these to be exposed and managed, maintaining consistency with physical fractional GPUs. Forward-looking: Once the accelerator supports virtualized accelerator technologies as part of DRA, then the platform should use the DRA mechanism."
+      level: SHOULD
+      status: "Implemented"
+      evidence:
+        - "https://docs.daocloud.io/en/kpanda/best-practice/hami-enterprise-installation/#prerequisites"
+      notes: "HAMi has provided support for K8s DRA (Dynamic Resource Allocation). The HAMi DRA webhook is a Kubernetes mutating webhook that automatically converts GPU device resource requests into DRA ResourceClaims, enabling dynamic resource allocation for GPU workloads."
+  networking:
+    - id: ai_inference
+      description: "Support the Kubernetes Gateway API with an implementation for advanced traffic management for inference services, which enables capabilities like weighted traffic splitting, header-based routing (for OpenAI protocol headers), and optional integration with service meshes."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "e2e.log"
+        - "junit_01.xml"
+        - "https://docs.daocloud.io/en/hydra/intro/deploy-ws/#create-service-mesh-istio-gateway-api"
+      notes: "test code: https://github.com/carlory/ai-conformance/blob/c4b99e98160525e78e475165a72b0c920501f57c/e2e/ai/networking.go#L16"
+  schedulingOrchestration:
+    - id: gang_scheduling
+      description: "The platform must allow for the installation and successful operation of at least one gang scheduling solution that ensures all-or-nothing scheduling for distributed AI workloads (e.g. Kueue, Volcano, etc.) To be conformant, the vendor must demonstrate that their platform can successfully run at least one such solution."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "e2e.log"
+        - "junit_01.xml"
+        - "https://docs.daocloud.io/en/baize/best-practice/train-with-tas/"
+      notes: "test code: https://github.com/carlory/ai-conformance/blob/c4b99e98160525e78e475165a72b0c920501f57c/e2e/ai/scheduling_orchestration.go#L41"
+    - id: cluster_autoscaling
+      description: "If the platform provides a cluster autoscaler or an equivalent mechanism, it must be able to scale up/down node groups containing specific accelerator types based on pending pods requesting those accelerators."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "https://docs.daocloud.io/en/native/knowledge/karpenter/"
+      notes: "DCE5 (via Kubean) does not bundle a cluster-autoscaler by default, but autoscaling is fully supported. Please see the above link for the details about the intergration with Karpenter and cloud provider like AWS."
+    - id: pod_autoscaling
+      description: "If the platform supports the HorizontalPodAutoscaler, it must function correctly for pods utilizing accelerators. This includes the ability to scale these Pods based on custom metrics relevant to AI/ML workloads."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "e2e.log"
+        - "junit_01.xml"
+        - "https://docs.daocloud.io/en/kpanda/user-guide/scale/custom-hpa/"
+      notes: "test code: https://github.com/carlory/ai-conformance/blob/c4b99e98160525e78e475165a72b0c920501f57c/e2e/ai/scheduling_orchestration.go#L270"
+  observability:
+    - id: accelerator_metrics
+      description: "For supported accelerator types, the platform must allow for the installation and successful operation of at least one accelerator metrics solution that exposes fine-grained performance metrics via a standardized, machine-readable metrics endpoint. This must include a core set of metrics for per-accelerator utilization and memory usage. Additionally, other relevant metrics such as temperature, power draw, and interconnect bandwidth should be exposed if the underlying hardware or virtualization layer makes them available. The list of metrics should align with emerging standards, such as OpenTelemetry metrics, to ensure interoperability. The platform may provide a managed solution, but this is not required for conformance."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "e2e.log"
+        - "junit_01.xml"
+        - "https://docs.daocloud.io/en/insight/quickstart/otel/operator/"
+        - "https://docs.daocloud.io/en/kpanda/user-guide/gpu/nvidia/gpu-monitoring-alarm/gpu-metrics"
+      notes: "test code: https://github.com/carlory/ai-conformance/blob/c4b99e98160525e78e475165a72b0c920501f57c/e2e/ai/observability.go#L26"
+    - id: ai_service_metrics
+      description: "Provide a monitoring system capable of discovering and collecting metrics from workloads that expose them in a standard format (e.g. Prometheus exposition format). This ensures easy integration for collecting key metrics from common AI frameworks and servers."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "e2e.log"
+        - "junit_01.xml"
+        - "https://docs.daocloud.io/en/insight/user-guide/collection-manag/collection-manag/"
+      notes: "test code: https://github.com/carlory/ai-conformance/blob/c4b99e98160525e78e475165a72b0c920501f57c/e2e/ai/observability.go#L101"
+  security:
+    - id: secure_accelerator_access
+      description: "Ensure that access to accelerators from within containers is properly isolated and mediated by the Kubernetes resource management framework (device plugin or DRA) and container runtime, preventing unauthorized access or interference between workloads."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "e2e.log"
+        - "junit_01.xml"
+      notes: "test code: https://github.com/carlory/ai-conformance/blob/c4b99e98160525e78e475165a72b0c920501f57c/e2e/ai/security.go#L23"
+  operator:
+    - id: robust_controller
+      description: "The platform must prove that at least one complex AI operator with a CRD (e.g., Ray, Kubeflow) can be installed and functions reliably. This includes verifying that the operator's pods run correctly, its webhooks are operational, and its custom resources can be reconciled."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "e2e.log"
+        - "junit_01.xml"
+      notes: "test code: https://github.com/carlory/ai-conformance/blob/c4b99e98160525e78e475165a72b0c920501f57c/e2e/ai/operator.go#L41"
