@@ -9,7 +9,7 @@ metadata:
   kubernetesVersion: v1.36
   platformName: "Infrinia AI Cloud OS"
   platformVersion: "v1.0.1-rc"
-  vendorName: "Infrinia"
+  vendorName: "Softbank"
   websiteUrl: "https://www.infrinia.ai"
   repoUrl: "https://github.com/tdiallo29/infrinia-conformance-evidence"
   documentationUrl: "https://www.infrinia.ai"
@@ -109,7 +109,7 @@ spec:
       notes: "Volcano installed via Helm (volcano-system namespace); volcano-admission, volcano-controllers, and volcano-scheduler all Running. A Volcano Job (minAvailable: 2, queue: gang-queue) demonstrates all-or-nothing scheduling: both worker pods started simultaneously (identical AGE=3s) on two separate nodes; the PodGroup reports Phase: Running, Running: 2; scheduler logs confirm 'tasks in gang are ready to be scheduled'."
     - id: cluster_autoscaling
       description: "If the platform provides a cluster autoscaler or an equivalent mechanism, it must be able to scale up/down node groups containing specific accelerator types based on pending pods requesting those accelerators."
-      level: MUST
+      level: SHOULD
       status: "N/A"
       evidence: []
       notes: "Platform is deployed on a static, bare-metal Kubernetes cluster with a fixed node pool provisioned at cluster creation. There is no cloud-provider integration, node-group concept, or infrastructure API through which GPU nodes could be dynamically provisioned. N/A is accepted per the criterion's explicit allowance for on-prem fixed-size clusters."
