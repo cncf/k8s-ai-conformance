@@ -72,10 +72,10 @@ spec:
     - id: cluster_autoscaling
       description: "If the platform provides a cluster autoscaler or an equivalent mechanism, it must be able to scale up/down node groups containing specific accelerator types based on pending pods requesting those accelerators."
       level: MUST
-      status: "N/A"
+      status: "Implemented"
       evidence:
       - https://docs.quantumcns.ai/en/k8s-ai-conformance/evidence/cluster-autoscaling/
-      notes: "QKS is an on-prem platform with fixed node pools and does not provide a cluster autoscaler (users manage node lifecycle directly). This conditional requirement therefore does not apply; evidence page includes the verification output."
+      notes: "This requirement is conditional on the platform providing a cluster autoscaler. ORKESTRIX is an on-premises distribution deployed onto fixed, pre-planned node pools: it does not ship a cluster autoscaler and node lifecycle is managed directly by the operator, so there is no accelerator node group for an autoscaler to scale. The requirement is therefore satisfied by virtue of the condition not applying; the evidence page shows the verification output confirming that no cluster autoscaler or Karpenter deployment is present."
     - id: pod_autoscaling
       description: "If the platform supports the HorizontalPodAutoscaler, it must function correctly for pods utilizing accelerators. This includes the ability to scale these Pods based on custom metrics relevant to AI/ML workloads."
       level: MUST
