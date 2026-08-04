@@ -257,6 +257,12 @@ func validateProduct(path string, cncfMembers map[string]bool) bool {
 					}(strVal, field)
 				}
 			} else if strings.HasPrefix(strVal, "http") {
+				if field == "productLogoUrl" || snakeField == "product_logo_url" {
+					lowerUrl := strings.ToLower(strVal)
+					if !strings.HasSuffix(lowerUrl, ".svg") && !strings.HasSuffix(lowerUrl, ".eps") && !strings.HasSuffix(lowerUrl, ".ai") {
+						addError(fmt.Sprintf("productLogoUrl must link to an SVG, EPS, or AI file: %s", strVal))
+					}
+				}
 				wg.Add(1)
 				go func(url, fName string) {
 					defer wg.Done()
@@ -358,6 +364,9 @@ func validateProduct(path string, cncfMembers map[string]bool) bool {
 	if len(errors) > 0 {
 		fmt.Println("Validation failed:")
 		for _, e := range errors {
+			if os.Getenv("GITHUB_ACTIONS") == "true" {
+				fmt.Printf("::error::%s\n", e)
+			}
 			fmt.Printf("  - %s\n", e)
 		}
 		return false
@@ -383,7 +392,7 @@ func validateURL(urlStr string) error {
 	}
 	// Try HEAD first
 	resp, err := doRequest(client, http.MethodHead, urlStr)
-	if err == nil && resp.StatusCode < 400 {
+	if err == nil && (resp.StatusCode < 400 || resp.StatusCode == http.StatusTooManyRequests) {
 		resp.Body.Close()
 		return nil
 	}
@@ -394,7 +403,7 @@ func validateURL(urlStr string) error {
 		return err
 	}
 	defer resp.Body.Close()
-	if resp.StatusCode >= 400 {
+	if resp.StatusCode >= 400 && resp.StatusCode != http.StatusTooManyRequests {
 		return fmt.Errorf("status code %d", resp.StatusCode)
 	}
 	return nil
