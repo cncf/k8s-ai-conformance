@@ -383,7 +383,7 @@ func validateURL(urlStr string) error {
 	}
 	// Try HEAD first
 	resp, err := doRequest(client, http.MethodHead, urlStr)
-	if err == nil && resp.StatusCode < 400 {
+	if err == nil && (resp.StatusCode < 400 || resp.StatusCode == http.StatusTooManyRequests) {
 		resp.Body.Close()
 		return nil
 	}
@@ -394,7 +394,7 @@ func validateURL(urlStr string) error {
 		return err
 	}
 	defer resp.Body.Close()
-	if resp.StatusCode >= 400 {
+	if resp.StatusCode >= 400 && resp.StatusCode != http.StatusTooManyRequests {
 		return fmt.Errorf("status code %d", resp.StatusCode)
 	}
 	return nil
