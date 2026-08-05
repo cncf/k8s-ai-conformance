@@ -13,6 +13,12 @@ on:
         required: true
         type: string
 
+# The cross-repo landscape PR update uses LANDSCAPE_GITHUB_TOKEN; the
+# default GITHUB_TOKEN is only used for checkout + a read-only `gh api`
+# call against /repos/*/commits/*/pulls.
+permissions:
+  contents: read
+
 jobs:
   update-landscape:
     runs-on: ubuntu-latest
