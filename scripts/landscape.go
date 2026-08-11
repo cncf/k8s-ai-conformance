@@ -634,6 +634,9 @@ Automated by [k8s-ai-conformance](https://github.com/cncf/k8s-ai-conformance).`,
 
 	log.Println("Creating PR on cncf/landscape...")
 	if err := runCmdInDir(tmpDir, "gh", "pr", "create",
+		"--repo", "cncf/landscape",
+		"--base", "master",
+		"--head", branchName,
 		"--title", prTitle,
 		"--body", prBody,
 		"--reviewer", "taylorwaggoner",
