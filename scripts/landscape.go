@@ -600,7 +600,7 @@ func main() {
 		log.Fatalf("Staging changes: %v", err)
 	}
 	commitMsg := fmt.Sprintf("Add %s to Certified Kubernetes - AI Platform", meta.PlatformName)
-	if err := runCmdInDir(tmpDir, "git", "commit", "-m", commitMsg); err != nil {
+	if err := runCmdInDir(tmpDir, "git", "commit", "--signoff", "-m", commitMsg); err != nil {
 		log.Fatalf("Committing changes: %v", err)
 	}
 	// Use --force in case the branch exists from a previous failed run
