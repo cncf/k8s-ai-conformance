@@ -107,62 +107,80 @@ func normalizeURL(raw string) string {
 // findEntryInLandscape searches a landscape.yml byte slice for an entry
 // whose homepage_url matches the given URL (after normalization).
 func findEntryInLandscape(data []byte, targetURL string) (*LandscapeEntry, error) {
+	entries, err := collectEntries(data)
+	if err != nil {
+		return nil, err
+	}
+	normalizedTarget := normalizeURL(targetURL)
+	for _, e := range entries {
+		if normalizeURL(e.HomepageURL) == normalizedTarget {
+			return e, nil
+		}
+	}
+	return nil, nil
+}
+
+// findEntryByName searches a landscape.yml byte slice for an entry whose name
+// matches the given product name, preferring exact token matches over
+// containment/prefix matches.
+func findEntryByName(data []byte, targetName string) (*LandscapeEntry, error) {
+	entries, err := collectEntries(data)
+	if err != nil {
+		return nil, err
+	}
+	var contained *LandscapeEntry
+	for _, e := range entries {
+		switch nameMatchLevel(targetName, e.Name) {
+		case nameMatchExact:
+			return e, nil
+		case nameMatchContained:
+			if contained == nil {
+				contained = e
+			}
+		}
+	}
+	return contained, nil
+}
+
+// collectEntries parses landscape YAML and returns all item entries in
+// document order.
+func collectEntries(data []byte) ([]*LandscapeEntry, error) {
 	var root yaml.Node
 	if err := yaml.Unmarshal(data, &root); err != nil {
 		return nil, fmt.Errorf("parsing landscape YAML: %w", err)
 	}
-
 	if root.Kind != yaml.DocumentNode || len(root.Content) == 0 {
 		return nil, fmt.Errorf("unexpected YAML structure: expected document node")
 	}
-
-	normalizedTarget := normalizeURL(targetURL)
-	return walkForEntry(root.Content[0], normalizedTarget)
+	var entries []*LandscapeEntry
+	walkEntries(root.Content[0], &entries)
+	return entries, nil
 }
 
-// walkForEntry recursively walks the YAML node tree looking for a mapping node
-// that has a homepage_url matching the target.
-func walkForEntry(node *yaml.Node, normalizedTarget string) (*LandscapeEntry, error) {
+// walkEntries recursively walks the YAML node tree collecting item mappings.
+func walkEntries(node *yaml.Node, entries *[]*LandscapeEntry) {
 	if node == nil {
-		return nil, nil
+		return
 	}
 
 	switch node.Kind {
 	case yaml.MappingNode:
-		// Check if this mapping has homepage_url that matches
-		entry := checkMappingForEntry(node, normalizedTarget)
-		if entry != nil {
-			return entry, nil
+		if entry := entryFromMapping(node); entry != nil {
+			*entries = append(*entries, entry)
 		}
-		// Recurse into mapping values
 		for i := 1; i < len(node.Content); i += 2 {
-			result, err := walkForEntry(node.Content[i], normalizedTarget)
-			if err != nil {
-				return nil, err
-			}
-			if result != nil {
-				return result, nil
-			}
+			walkEntries(node.Content[i], entries)
 		}
-
 	case yaml.SequenceNode:
 		for _, child := range node.Content {
-			result, err := walkForEntry(child, normalizedTarget)
-			if err != nil {
-				return nil, err
-			}
-			if result != nil {
-				return result, nil
-			}
+			walkEntries(child, entries)
 		}
 	}
-
-	return nil, nil
 }
 
-// checkMappingForEntry checks whether a YAML mapping node represents a landscape
-// item with a homepage_url matching the target. Returns nil if not a match.
-func checkMappingForEntry(node *yaml.Node, normalizedTarget string) *LandscapeEntry {
+// entryFromMapping converts a YAML mapping node into a LandscapeEntry if it
+// represents a landscape item. Returns nil otherwise.
+func entryFromMapping(node *yaml.Node) *LandscapeEntry {
 	if node.Kind != yaml.MappingNode {
 		return nil
 	}
@@ -207,10 +225,6 @@ func checkMappingForEntry(node *yaml.Node, normalizedTarget string) *LandscapeEn
 		return nil
 	}
 
-	if normalizeURL(homepageURL) != normalizedTarget {
-		return nil
-	}
-
 	// Check if second_path already contains AI Platform
 	if secondPathNode != nil && secondPathNode.Kind == yaml.SequenceNode {
 		for _, item := range secondPathNode.Content {
@@ -228,6 +242,98 @@ func checkMappingForEntry(node *yaml.Node, normalizedTarget string) *LandscapeEn
 		ItemLineIndex:           itemLine - 1, // convert 1-indexed to 0-indexed
 		LastFieldLineIndex:      maxLine - 1,  // convert 1-indexed to 0-indexed
 	}
+}
+
+const (
+	nameMatchNone = iota
+	nameMatchContained
+	nameMatchExact
+)
+
+var nameTokenSplit = regexp.MustCompile(`[^a-z0-9]+`)
+
+func nameTokens(s string) []string {
+	var tokens []string
+	for _, t := range nameTokenSplit.Split(strings.ToLower(s), -1) {
+		if t != "" {
+			tokens = append(tokens, t)
+		}
+	}
+	return tokens
+}
+
+// nameMatchLevel compares a product name against a landscape entry name using
+// token-based heuristics. Exact token equality wins; otherwise a match is
+// declared when one name's tokens appear contiguously inside the other
+// (e.g. "vSphere Kubernetes Service" in "VMware vSphere Kubernetes Service"),
+// or when token counts are equal and each token pair is equal or a prefix of
+// the other (e.g. "OVHcloud ..." vs "OVH ...").
+func nameMatchLevel(productName, entryName string) int {
+	pt := nameTokens(productName)
+	et := nameTokens(entryName)
+	if len(pt) == 0 || len(et) == 0 {
+		return nameMatchNone
+	}
+	if tokensEqual(pt, et) {
+		return nameMatchExact
+	}
+	shorter, longer := pt, et
+	if len(shorter) > len(longer) {
+		shorter, longer = longer, shorter
+	}
+	if len(shorter) < len(longer) && tokensContain(longer, shorter) {
+		return nameMatchContained
+	}
+	if len(pt) == len(et) && len(pt) >= 2 && tokensPrefixEqual(pt, et) {
+		return nameMatchContained
+	}
+	return nameMatchNone
+}
+
+func tokensEqual(a, b []string) bool {
+	return len(a) == len(b) && equalAll(a, b)
+}
+
+func equalAll(a, b []string) bool {
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
+}
+
+// tokensContain reports whether short appears as a contiguous subsequence of
+// long. Single-token needles must be at least 3 characters to avoid spurious
+// matches.
+func tokensContain(long, short []string) bool {
+	if len(short) == 1 && len(short[0]) < 3 {
+		return false
+	}
+	for i := 0; i+len(short) <= len(long); i++ {
+		if equalAll(long[i:i+len(short)], short) {
+			return true
+		}
+	}
+	return false
+}
+
+// tokensPrefixEqual reports whether same-length token slices match pairwise,
+// where each pair is equal or one token is a prefix (>= 3 chars) of the other.
+func tokensPrefixEqual(a, b []string) bool {
+	for i := range a {
+		if a[i] == b[i] {
+			continue
+		}
+		x, y := a[i], b[i]
+		if len(x) > len(y) {
+			x, y = y, x
+		}
+		if len(x) < 3 || !strings.HasPrefix(y, x) {
+			return false
+		}
+	}
+	return true
 }
 
 // lastNodeLine returns the last line number (1-indexed) used by a yaml.Node,
@@ -493,6 +599,15 @@ func processProduct(tmpDir, landscapePath string, meta *ProductMeta) (string, er
 	entry, err := findEntryInLandscape(landscapeData, meta.WebsiteURL)
 	if err != nil {
 		return "", fmt.Errorf("searching landscape: %w", err)
+	}
+	if entry == nil {
+		entry, err = findEntryByName(landscapeData, meta.PlatformName)
+		if err != nil {
+			return "", fmt.Errorf("searching landscape by name: %w", err)
+		}
+		if entry != nil {
+			log.Printf("Matched %q to existing entry %q by name", meta.PlatformName, entry.Name)
+		}
 	}
 
 	if entry != nil {

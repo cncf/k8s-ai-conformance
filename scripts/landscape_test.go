@@ -907,3 +907,72 @@ func TestSanitizeBranchName(t *testing.T) {
 		}
 	})
 }
+
+func TestNameMatchLevel(t *testing.T) {
+	tests := []struct {
+		product string
+		entry   string
+		want    int
+	}{
+		{"Azure Kubernetes Service (AKS)", "Azure Kubernetes Service (AKS)", nameMatchExact},
+		{"RKE2", "RKE2", nameMatchExact},
+		{"DaoCloud Enterprise", "DaoCloud Enterprise", nameMatchExact},
+		{"Alibaba Cloud Container Service for Kubernetes", "Alibaba Cloud Container Service for Kubernetes", nameMatchExact},
+		{"Linode Kubernetes Engine (LKE)", "Linode Kubernetes Engine", nameMatchContained},
+		{"vSphere Kubernetes Service", "VMware vSphere Kubernetes Service", nameMatchContained},
+		{"Alauda Container Platform", "Alauda Container Platform (ACP)", nameMatchContained},
+		{"Cloud Container Distribution", "Ericsson Cloud Container Distribution", nameMatchContained},
+		{"BKS", "Breqwatr BKS", nameMatchContained},
+		{"OVHcloud Managed Kubernetes Service", "OVH Managed Kubernetes Service", nameMatchContained},
+		{"DaoCloud Enterprise", "DaoCloud (KCSP)", nameMatchNone},
+		{"Amazon Elastic Kubernetes Service (EKS)", "Amazon Elastic Container Service for Kubernetes (EKS)", nameMatchNone},
+		{"Azure Kubernetes Service (AKS)", "Azure Kubernetes Service (AKS) (Wasm)", nameMatchContained},
+		{"k0s", "k0smotron", nameMatchNone},
+		{"JDOS", "JD Cloud (KCSP)", nameMatchNone},
+		{"NVIDIA NIM on EKS", "NVIDIA (member)", nameMatchNone},
+	}
+	for _, tt := range tests {
+		if got := nameMatchLevel(tt.product, tt.entry); got != tt.want {
+			t.Errorf("nameMatchLevel(%q, %q) = %d, want %d", tt.product, tt.entry, got, tt.want)
+		}
+	}
+}
+
+func TestFindEntryByName_PrefersExactOverContained(t *testing.T) {
+	fixture := `landscape:
+  - category:
+    name: Certified Kubernetes - Platform
+    subcategories:
+      - subcategory:
+        name: Certified Kubernetes - Platform
+        items:
+          - item:
+            name: Azure Kubernetes Service (AKS) (Wasm)
+            homepage_url: https://example.com/wasm
+            logo: aks-wasm.svg
+          - item:
+            name: Azure Kubernetes Service (AKS)
+            homepage_url: https://example.com/aks
+            logo: aks.svg
+`
+	entry, err := findEntryByName([]byte(fixture), "Azure Kubernetes Service (AKS)")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if entry == nil {
+		t.Fatal("expected to find entry, got nil")
+	}
+	if entry.Name != "Azure Kubernetes Service (AKS)" {
+		t.Errorf("Name = %q, want exact match preferred", entry.Name)
+	}
+}
+
+func TestFindEntryByName_NotFound(t *testing.T) {
+	entry, err := findEntryByName([]byte(landscapeFixture), "Totally Unrelated Product")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if entry != nil {
+		t.Errorf("expected nil entry, got %+v", entry)
+	}
+}
