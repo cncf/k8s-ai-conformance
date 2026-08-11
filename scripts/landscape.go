@@ -104,7 +104,11 @@ func normalizeURL(raw string) string {
 	return parsed.String()
 }
 
-// findEntryInLandscape searches a landscape.yml byte slice for an entry
+// nonProductName matches landscape cards that represent companies or
+// certifications (KCSP, KCNTP, KTP, membership) rather than products.
+var nonProductName = regexp.MustCompile(`\((KCSP|KCNTP|KTP|member)\)`)
+
+// findEntryInLandscape searches a landscape.yml byte slice for a product entry
 // whose homepage_url matches the given URL (after normalization).
 func findEntryInLandscape(data []byte, targetURL string) (*LandscapeEntry, error) {
 	entries, err := collectEntries(data)
@@ -113,6 +117,9 @@ func findEntryInLandscape(data []byte, targetURL string) (*LandscapeEntry, error
 	}
 	normalizedTarget := normalizeURL(targetURL)
 	for _, e := range entries {
+		if nonProductName.MatchString(e.Name) {
+			continue
+		}
 		if normalizeURL(e.HomepageURL) == normalizedTarget {
 			return e, nil
 		}
@@ -120,26 +127,77 @@ func findEntryInLandscape(data []byte, targetURL string) (*LandscapeEntry, error
 	return nil, nil
 }
 
-// findEntryByName searches a landscape.yml byte slice for an entry whose name
-// matches the given product name, preferring exact token matches over
-// containment/prefix matches.
-func findEntryByName(data []byte, targetName string) (*LandscapeEntry, error) {
+// findEntryByName searches a landscape.yml byte slice for a product entry
+// whose name matches the given product name. Exact token matches win;
+// otherwise the best-scoring containment/prefix match wins, where entries
+// mentioning the vendor break ties (e.g. Huawei's vs Baidu's
+// "Cloud Container Engine").
+func findEntryByName(data []byte, vendorName, platformName string) (*LandscapeEntry, error) {
 	entries, err := collectEntries(data)
 	if err != nil {
 		return nil, err
 	}
-	var contained *LandscapeEntry
+	vendorTokens := nameTokens(vendorName)
+	var best *LandscapeEntry
+	bestScore := 0
 	for _, e := range entries {
-		switch nameMatchLevel(targetName, e.Name) {
-		case nameMatchExact:
+		if nonProductName.MatchString(e.Name) {
+			continue
+		}
+		level, overlap := nameMatchLevel(platformName, e.Name)
+		if level == nameMatchNone {
+			level, overlap = vendorQualifiedMatch(vendorName, platformName, e.Name)
+		}
+		if level == nameMatchExact {
 			return e, nil
-		case nameMatchContained:
-			if contained == nil {
-				contained = e
+		}
+		if level != nameMatchContained {
+			continue
+		}
+		score := overlap * 2
+		if mentionsAny(e.Name, vendorTokens) {
+			score++
+		}
+		if score > bestScore {
+			best = e
+			bestScore = score
+		}
+	}
+	return best, nil
+}
+
+// vendorQualifiedMatch handles entries that prepend the vendor to the product
+// name, e.g. entry "Baidu Cloud Container Engine" for vendor "Baidu Cloud" +
+// product "CCE（Cloud Container Engine）". The entry tokens (>= 3) must appear
+// as an ordered subsequence of vendor+product tokens.
+func vendorQualifiedMatch(vendorName, platformName, entryName string) (int, int) {
+	et := nameTokens(entryName)
+	if len(et) < 3 {
+		return nameMatchNone, 0
+	}
+	vpt := nameTokens(vendorName + " " + platformName)
+	i := 0
+	for _, tok := range vpt {
+		if tok == et[i] {
+			i++
+			if i == len(et) {
+				return nameMatchContained, len(et)
 			}
 		}
 	}
-	return contained, nil
+	return nameMatchNone, 0
+}
+
+func mentionsAny(name string, tokens []string) bool {
+	nt := nameTokens(name)
+	for _, t := range tokens {
+		for _, n := range nt {
+			if t == n {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // collectEntries parses landscape YAML and returns all item entries in
@@ -263,31 +321,34 @@ func nameTokens(s string) []string {
 }
 
 // nameMatchLevel compares a product name against a landscape entry name using
-// token-based heuristics. Exact token equality wins; otherwise a match is
-// declared when one name's tokens appear contiguously inside the other
-// (e.g. "vSphere Kubernetes Service" in "VMware vSphere Kubernetes Service"),
-// or when token counts are equal and each token pair is equal or a prefix of
-// the other (e.g. "OVHcloud ..." vs "OVH ...").
-func nameMatchLevel(productName, entryName string) int {
+// token-based heuristics, returning the match level and overlap size in
+// tokens. Beyond exact equality, a match is declared when:
+//   - the product tokens appear contiguously in the entry name, e.g.
+//     "BKS" in "Breqwatr BKS" (single-token products need >= 3 chars);
+//   - the entry tokens appear contiguously in the product name, e.g.
+//     "Linode Kubernetes Engine" in "Linode Kubernetes Engine (LKE)" —
+//     entries need >= 2 tokens so generic cards like "Kubernetes" never match;
+//   - token counts are equal and each pair is equal or a prefix of the other,
+//     e.g. "OVHcloud ..." vs "OVH ...".
+func nameMatchLevel(productName, entryName string) (int, int) {
 	pt := nameTokens(productName)
 	et := nameTokens(entryName)
 	if len(pt) == 0 || len(et) == 0 {
-		return nameMatchNone
+		return nameMatchNone, 0
 	}
 	if tokensEqual(pt, et) {
-		return nameMatchExact
+		return nameMatchExact, len(pt)
 	}
-	shorter, longer := pt, et
-	if len(shorter) > len(longer) {
-		shorter, longer = longer, shorter
+	if len(pt) < len(et) && (len(pt) >= 2 || len(pt[0]) >= 3) && tokensContain(et, pt) {
+		return nameMatchContained, len(pt)
 	}
-	if len(shorter) < len(longer) && tokensContain(longer, shorter) {
-		return nameMatchContained
+	if len(et) < len(pt) && len(et) >= 2 && tokensContain(pt, et) {
+		return nameMatchContained, len(et)
 	}
 	if len(pt) == len(et) && len(pt) >= 2 && tokensPrefixEqual(pt, et) {
-		return nameMatchContained
+		return nameMatchContained, len(pt)
 	}
-	return nameMatchNone
+	return nameMatchNone, 0
 }
 
 func tokensEqual(a, b []string) bool {
@@ -601,7 +662,7 @@ func processProduct(tmpDir, landscapePath string, meta *ProductMeta) (string, er
 		return "", fmt.Errorf("searching landscape: %w", err)
 	}
 	if entry == nil {
-		entry, err = findEntryByName(landscapeData, meta.PlatformName)
+		entry, err = findEntryByName(landscapeData, meta.VendorName, meta.PlatformName)
 		if err != nil {
 			return "", fmt.Errorf("searching landscape by name: %w", err)
 		}

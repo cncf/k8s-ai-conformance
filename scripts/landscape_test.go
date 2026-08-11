@@ -930,9 +930,13 @@ func TestNameMatchLevel(t *testing.T) {
 		{"k0s", "k0smotron", nameMatchNone},
 		{"JDOS", "JD Cloud (KCSP)", nameMatchNone},
 		{"NVIDIA NIM on EKS", "NVIDIA (member)", nameMatchNone},
+		{"vSphere Kubernetes Service", "Kubernetes", nameMatchNone},
+		{"JCS for Kubernetes", "Kubernetes", nameMatchNone},
+		{"Cloud Container Distribution", "Distribution", nameMatchNone},
+		{"Cloud Container Engine", "Huawei Cloud Container Engine (CCE)", nameMatchContained},
 	}
 	for _, tt := range tests {
-		if got := nameMatchLevel(tt.product, tt.entry); got != tt.want {
+		if got, _ := nameMatchLevel(tt.product, tt.entry); got != tt.want {
 			t.Errorf("nameMatchLevel(%q, %q) = %d, want %d", tt.product, tt.entry, got, tt.want)
 		}
 	}
@@ -955,7 +959,7 @@ func TestFindEntryByName_PrefersExactOverContained(t *testing.T) {
             homepage_url: https://example.com/aks
             logo: aks.svg
 `
-	entry, err := findEntryByName([]byte(fixture), "Azure Kubernetes Service (AKS)")
+	entry, err := findEntryByName([]byte(fixture), "Microsoft", "Azure Kubernetes Service (AKS)")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -968,11 +972,96 @@ func TestFindEntryByName_PrefersExactOverContained(t *testing.T) {
 }
 
 func TestFindEntryByName_NotFound(t *testing.T) {
-	entry, err := findEntryByName([]byte(landscapeFixture), "Totally Unrelated Product")
+	entry, err := findEntryByName([]byte(landscapeFixture), "Nobody", "Totally Unrelated Product")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if entry != nil {
 		t.Errorf("expected nil entry, got %+v", entry)
+	}
+}
+
+func TestFindEntryByName_PrefersLargestOverlap(t *testing.T) {
+	fixture := `landscape:
+  - category:
+    name: Certified Kubernetes - Platform
+    subcategories:
+      - subcategory:
+        name: Certified Kubernetes - Platform
+        items:
+          - item:
+            name: OVH (KCSP)
+            homepage_url: https://example.com/kcsp
+            logo: ovh-kcsp.svg
+          - item:
+            name: VMware vSphere Kubernetes Service
+            homepage_url: https://example.com/vks
+            logo: vks.svg
+`
+	entry, err := findEntryByName([]byte(fixture), "Broadcom", "vSphere Kubernetes Service")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if entry == nil {
+		t.Fatal("expected to find entry, got nil")
+	}
+	if entry.Name != "VMware vSphere Kubernetes Service" {
+		t.Errorf("Name = %q, want VMware entry", entry.Name)
+	}
+}
+
+func TestFindEntryInLandscape_SkipsNonProductCards(t *testing.T) {
+	fixture := `landscape:
+  - category:
+    name: Kubernetes Certified Service Provider
+    subcategories:
+      - subcategory:
+        name: Kubernetes Certified Service Provider
+        items:
+          - item:
+            name: Huawei (KCSP)
+            homepage_url: https://huawei.example.com
+            logo: huawei-kcsp.svg
+`
+	entry, err := findEntryInLandscape([]byte(fixture), "https://huawei.example.com")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if entry != nil {
+		t.Errorf("expected KCSP card to be skipped, got %+v", entry)
+	}
+}
+
+func TestFindEntryByName_VendorQualified(t *testing.T) {
+	fixture := `landscape:
+  - category:
+    name: Certified Kubernetes - Hosted
+    subcategories:
+      - subcategory:
+        name: Certified Kubernetes - Hosted
+        items:
+          - item:
+            name: Baidu Cloud Container Engine
+            homepage_url: https://example.com/baidu-cce
+            logo: baidu.svg
+          - item:
+            name: Huawei Cloud Container Engine (CCE)
+            homepage_url: https://example.com/huawei-cce
+            logo: huawei.svg
+`
+	entry, err := findEntryByName([]byte(fixture), "Baidu Cloud", "CCE（Cloud Container Engine）")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if entry == nil || entry.Name != "Baidu Cloud Container Engine" {
+		t.Fatalf("want Baidu entry, got %+v", entry)
+	}
+
+	entry, err = findEntryByName([]byte(fixture), "Huawei", "Cloud Container Engine")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if entry == nil || entry.Name != "Huawei Cloud Container Engine (CCE)" {
+		t.Fatalf("want Huawei entry (vendor tiebreak), got %+v", entry)
 	}
 }
