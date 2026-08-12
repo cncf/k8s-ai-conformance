@@ -4,13 +4,13 @@
 
 metadata:
   kubernetesVersion: v1.35
-  platformName: OCI Kubernetes Engine (OKE)
-  platformVersion: v1.35
-  vendorName: Oracle
+  platformName: "OCI Kubernetes Engine (OKE)"
+  platformVersion: "v1.35"
+  vendorName: "Oracle"
   websiteUrl: https://www.oracle.com/cloud/cloud-native/kubernetes-engine/
   repoUrl: N/A
   documentationUrl: https://docs.oracle.com/en-us/iaas/Content/ContEng/home.htm
-  productLogoUrl: https://github.com/cncf/landscape/blob/5f70422dd615d881822c2c627e054693fb0b3d9a/hosted_logos/oracle.svg
+  productLogoUrl: https://raw.githubusercontent.com/cncf/landscape/82bb8f9c44fbe74d338bf3bd9c33dbaefeb164d1/hosted_logos/oracle.svg
   description: "Oracle Cloud Infrastructure Kubernetes Engine (OKE) is a fully-managed, scalable, and highly available service that you can use to deploy your containerized applications to the cloud."
   contactEmailAddress: mickey.boxell@oracle.com
   k8sConformanceUrl: https://github.com/cncf/k8s-conformance/tree/master/v1.35/oke
