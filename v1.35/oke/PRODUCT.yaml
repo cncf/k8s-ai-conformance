@@ -1,7 +1,3 @@
-# Kubernetes AI Conformance Checklist
-# Notes: This checklist is based on the Kubernetes AI Conformance document.
-# Participants should fill in the 'status', 'evidence', and 'notes' fields for each requirement.
-
 metadata:
   kubernetesVersion: v1.35
   platformName: "OCI Kubernetes Engine (OKE)"
