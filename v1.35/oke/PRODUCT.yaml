@@ -95,7 +95,7 @@ spec:
       level: MUST
       status: "Implemented"
       evidence:
-        - "https://blogs.oracle.com/developers/verifying-gpu-accelerator-isolation-oci-kubernetes-engine-oke"
+        - "https://github.com/mickeyboxell/ai-conformance/blob/patch-3/v1.35/oke/Verifying%20GPU%20Accelerator%20Access%20Isolation%20in%20OCI%20Kubernetes%20Engine.md"
       notes: ""
   operator:
     - id: robust_controller
