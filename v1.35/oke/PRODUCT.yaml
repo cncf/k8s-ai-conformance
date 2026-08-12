@@ -68,7 +68,7 @@ spec:
       level: MUST
       status: "Implemented"
       evidence:
-        - "https://blogs.oracle.com/developers/post/autoscaling-gpu-workloads-oci-kubernetes-engine-oke"
+        - "https://blogs.oracle.com/developers/autoscaling-gpu-workloads-oci-kubernetes-engine-oke"
         - "https://docs.oracle.com/en-us/iaas/Content/ContEng/Tasks/contengusinghorizontalpodautoscaler.htm"
       notes: ""
   observability:
@@ -86,7 +86,7 @@ spec:
       level: MUST
       status: "Implemented"
       evidence:
-        - "https://github.com/oci-hpc/oci-hpc-oke/blob/manual-monitoring-deployment/docs/deploying-monitoring-stack-manually.md"
+        - "https://github.com/oci-hpc/oci-hpc-oke/blob/main/docs/deploying-monitoring-stack-manually.md"
         - "https://github.com/oracle-quickstart/oci-gpu-scanner"
       notes: ""
   security:
@@ -95,7 +95,7 @@ spec:
       level: MUST
       status: "Implemented"
       evidence:
-        - "https://blogs.oracle.com/developers/post/verifying-gpu-accelerator-isolation-oci-kubernetes-engine-oke"
+        - "https://blogs.oracle.com/developers/verifying-gpu-accelerator-isolation-oci-kubernetes-engine-oke"
       notes: ""
   operator:
     - id: robust_controller
@@ -103,6 +103,6 @@ spec:
       level: MUST
       status: "Implemented"
       evidence:
-        - "https://docs.anyscale.com/admin/cloud/kubernetes"
+        - "https://docs.anyscale.com/clouds/kubernetes"
         - "https://www.oracle.com/artificial-intelligence/machine-learning-with-kubeflow/"
       notes: "" 
