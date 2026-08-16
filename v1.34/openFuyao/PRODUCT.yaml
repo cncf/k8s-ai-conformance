@@ -1,0 +1,87 @@
+# Kubernetes AI Conformance Checklist
+# Notes: This checklist is based on the Kubernetes AI Conformance document.
+# Participants should fill in the 'status', 'evidence', and 'notes' fields for each requirement.
+metadata:
+  kubernetesVersion: v1.34
+  platformName: "openFuyao"
+  platformVersion: "v26.06"
+  vendorName: "Huawei"
+  websiteUrl: "https://www.openfuyao.cn/en/"
+  documentationUrl: "https://docs.openfuyao.cn/en/docs/v26.06/legal_statement.html"
+  productLogoUrl: "https://static.openfuyao.cn/openfuyao-website/image/category/other/logo-black-text.svg"
+  repoUrl: "https://gitcode.com/openFuyao"
+  contactEmailAddress: "contact@openfuyao.cn"
+  k8sConformanceUrl: "https://github.com/cncf/k8s-conformance/tree/master/v1.34/openFuyao"
+  description: "openFuyao is deeply optimized based on Kubernetes, focusing on AI Native Infra capabilities. It provides out-of-the-box containerized cluster management capabilities, helping users rapidly build efficient, elastic, and intelligent computing infrastructure."
+
+spec:
+  accelerators:
+    - id: dra_support
+      description: "Support Dynamic Resource Allocation (DRA) APIs to enable more flexible and fine-grained resource requests beyond simple counts."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "https://gitcode.com/openFuyao/sig-orchestration-engine/blob/master/docs/en/npu_dra_plugin_user_guide/npu_dra_plugin.md"
+      notes: "openFuyao v26.06 completes deep adaptation of Ascend NPU devices based on the Kubernetes native DRA architecture, supporting 910B, 910C, and 910P series chips."
+  networking:
+    - id: ai_inference
+      description: "Support the Kubernetes Gateway API with an implementation for advanced traffic management for inference services, which enables capabilities like weighted traffic splitting, header-based routing (for OpenAI protocol headers), and optional integration with service meshes."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "https://gitcode.com/openFuyao/sig-ai-inference/blob/main/docs/en/ai_inference_infernex/user_guide/ai_inference_infernex.md"
+      notes: "InferNex by openFuyao is built on top of the Kubernetes Gateway API Inference Extension (GIE) and integrates Istio by default as the gateway and service mesh implementation. Istiod monitors Gateway API Custom Resource Definitions (CRDs), such as GatewayClass, Gateway, and HTTPRoute. It supports weighted traffic splitting and header-based routing, as well as service mesh integration, to meet advanced traffic management requirements."
+  schedulingOrchestration:
+    - id: gang_scheduling
+      description: "The platform must allow for the installation and successful operation of at least one gang scheduling solution that ensures all-or-nothing scheduling for distributed AI workloads (e.g. Kueue, Volcano, etc.) To be conformant, the vendor must demonstrate that their platform can successfully run at least one such solution."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "https://gitcode.com/openFuyao/docs/blob/master/docs/en/user_guide/npu_operator.md"
+      notes: "openFuyao integrates and installs Volcano (based on original Volcano 1.9.0) via npu-operator, supporting PodGroup-based gang scheduling (all-or-nothing) semantics."
+    - id: cluster_autoscaling
+      description: "If the platform provides a cluster autoscaler or an equivalent mechanism, it must be able to scale up/down node groups containing specific accelerator types based on pending pods requesting those accelerators."
+      level: MUST
+      status: "Not Applicable"
+      evidence: []
+      notes: "openFuyao does not provide a cluster autoscaler or an equivalent mechanism. openFuyao is positioned as an on-premise private deployment platform for AI infrastructure, where node counts are typically fixed and predetermined at the planning stage. Cluster autoscaling (dynamic node pool scaling based on pending pod demands) is not applicable to this environment, as infrastructure capacity is provisioned statically rather than elastically. This is consistent with the CNCF AI Conformance FAQ's example that autoscalers are not always applicable to on-prem clusters."
+    - id: pod_autoscaling
+      description: "If the platform supports the HorizontalPodAutoscaler, it must function correctly for pods utilizing accelerators. This includes the ability to scale these Pods based on custom metrics relevant to AI/ML workloads."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "https://gitcode.com/openFuyao/sig-ai-inference/blob/main/docs/en/ai_inference_elastic_scaling_system/ai_inference_elastic_scaling/user_guide/ai_inference_elastic_scaling.md"
+      notes: "openFuyao's elastic_scaling is based on K8s HPA (Horizontal Pod Autoscaler) and custom resource extensions, fully compatible with the K8s ecosystem."
+  observability:
+    - id: accelerator_metrics
+      description: "For supported accelerator types, the platform must allow for the installation and successful operation of at least one accelerator metrics solution that exposes fine-grained performance metrics via a standardized, machine-readable metrics endpoint. This must include a core set of metrics for per-accelerator utilization and memory usage. Additionally, other relevant metrics such as temperature, power draw, and interconnect bandwidth should be exposed if the underlying hardware or virtualization layer makes them available. The list of metrics should align with emerging standards, such as OpenTelemetry metrics, to ensure interoperability. The platform may provide a managed solution, but this is not required for conformance."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "https://gitcode.com/openFuyao/docs/blob/master/docs/en/user_guide/npu_operator.md"
+        - "https://docs.openfuyao.cn/en/docs/v26.06/user_guide/observability_center/monitoring.html#feature-overview"
+      notes: "The NPU Exporter in npu-operator supports real-time collection of various resource data of Ascend AI processors, including processor utilization, temperature, voltage, and memory usage. In addition, we also have a monitoring system based on Prometheus"
+    - id: ai_service_metrics
+      description: "Provide a monitoring system capable of discovering and collecting metrics from workloads that expose them in a standard format (e.g. Prometheus exposition format). This ensures easy integration for collecting key metrics from common AI frameworks and servers."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "https://gitcode.com/openFuyao/sig-ai-inference/blob/main/docs/en/ai_inference_eagle_eye/user_guide/eagle_eye_for_ai_inference.md"
+      notes: "openFuyao's Eagle Eye is a full-link observability system for AI inference scenarios. Based on a dual-channel architecture (Prometheus collection + distributed message queue push), it implements metrics collection and intelligent diagnostics across AI gateway (QPS, TTFT, token consumption), inference engine (vLLM API, scheduling, KV cache), Mooncake KVCache, and infrastructure (Ray, K8s, NPU hardware). It supports OpenTelemetry integration with common AI frameworks such as vLLM."
+  security:
+    - id: secure_accelerator_access
+      description: "Ensure that access to accelerators from within containers is properly isolated and mediated by the Kubernetes resource management framework (device plugin or DRA) and container runtime, preventing unauthorized access or interference between workloads."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "https://gitcode.com/openFuyao/sig-orchestration-engine/blob/master/docs/en/npu_dra_plugin_user_guide/npu_dra_plugin.md"
+        - "https://gitcode.com/openFuyao/docs/blob/master/docs/en/user_guide/npu_operator.md"
+      notes: "In openFuyao, both the Ascend Device Plugin and the npu_dra_plugin within the NPU Operator have implemented the aforementioned capabilities."
+  operator:
+    - id: robust_controller
+      description: "The platform must prove that at least one complex AI operator with a CRD (e.g., Ray, Kubeflow) can be installed and functions reliably. This includes verifying that the operator's pods run correctly, its webhooks are operational, and its custom resources can be reconciled."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "https://gitcode.com/openFuyao/docs/blob/master/docs/en/user_guide/computing_power_optimization_center/openfuyao_ray.md"
+      notes: "openFuyao Ray is a distributed computing framework that supports heterogeneous computing power and function-level on-demand scheduling. It is well-suited for scenarios involving general-purpose computing, AI computing, and the convergence of both. Additionally, it leverages KubeRay's capabilities within its components."
