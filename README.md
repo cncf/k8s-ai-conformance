@@ -5,7 +5,7 @@
 **A standardized approach to running AI/ML workloads on Kubernetes**
 
 [![CNCF Project](https://img.shields.io/badge/CNCF-Project-blue)](https://www.cncf.io/)
-[![Kubernetes](https://img.shields.io/badge/Kubernetes-1.33%20%7C%201.34%20%7C%201.35%20%7C%201.36-326CE5?logo=kubernetes)](https://kubernetes.io/)
+[![Kubernetes](https://img.shields.io/badge/Kubernetes-1.35%20%7C%201.36%20%7C%201.37-326CE5?logo=kubernetes)](https://kubernetes.io/)
 
 [Get Certified](#for-vendors) · [Contribute](#for-contributors) · [FAQ](faq.md) · [AI Conformance Project](https://github.com/kubernetes-sigs/ai-conformance)
 
@@ -57,6 +57,18 @@ If you provide a Kubernetes platform and want to get certified, here's what you 
 Most submissions are a completed checklist plus links to public evidence—think of it as a structured, reviewable self-assessment.
 
 **Before you start:** Your platform must already be [Kubernetes Conformant](https://github.com/cncf/k8s-conformance). AI conformance builds on top of base Kubernetes conformance.
+
+For the canonical reference tests and example implementations, see the upstream [AI Conformance test suite](https://github.com/kubernetes-sigs/ai-conformance/tree/main/test).
+
+## Hybrid Verification Submission (v1.37+)
+
+Starting with v1.37, we support a hybrid verification approach that combines automated test results with manual attestation:
+
+1.  **Automated Tests**: For requirements with automated tests (e.g., Secure Accelerator Access, Gang Scheduling), run the test suite and include the output files (`e2e.log`, `junit.xml`) in your submission PR.
+2.  **Manual Attestation**: For requirements without automated tests, continue to provide documentation or reference URLs in the `evidence` field of the checklist YAML.
+
+Reference your automated test results in the checklist YAML using the `file://` scheme or relative paths to your submitted test artifacts.
+The automated tests are not required for certification yet, but they provide additional confidence in your platform's conformance.
 
 #### The certification process
 
@@ -139,14 +151,14 @@ For the full and up-to-date requirements, see the [conformance versions](https:/
 
 Pick the one that matches your Kubernetes version:
 
-- [AIConformance-1.36.yaml](docs/AIConformance-1.36.yaml) (latest)
+- [AIConformance-1.37.yaml](docs/AIConformance-1.37.yaml) (latest)
+- [AIConformance-1.36.yaml](docs/AIConformance-1.36.yaml)
 - [AIConformance-1.35.yaml](docs/AIConformance-1.35.yaml)
-- [AIConformance-1.34.yaml](docs/AIConformance-1.34.yaml)
-- [AIConformance-1.33.yaml](docs/AIConformance-1.33.yaml)
 
 ### Related Projects
 
 - [Kubernetes Conformance](https://github.com/cncf/k8s-conformance) - Base Kubernetes certification (required first)
+- [AI Conformance Tests](https://github.com/kubernetes-sigs/ai-conformance/tree/main/test) - Canonical reference tests for AI workload validation
 - [Conformance Tests](https://github.com/kubernetes/kubernetes/blob/master/test/conformance/testdata/conformance.yaml) - Kubernetes test suite
 - [Verify Conformance Bot](https://github.com/kubernetes-sigs/verify-conformance) - Automation coming soon
 
