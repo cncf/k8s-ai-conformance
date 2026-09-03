@@ -17,10 +17,12 @@ product.  Examples would be `gke` or `openshift`.
 
 ### Contents of the PR
 
-You must submit the completed self assesment manifest file for the relevant major/minor version of Kubernetes. 
+You must submit the completed self assessment manifest file for the relevant major/minor version of Kubernetes in a subdirectory named after your product (`$dir`), along with test artifacts if applicable:
 
 ```
-vX.Y/$dir/PRODUCT.yaml: See below.
+vX.Y/$dir/PRODUCT.yaml: (Required) See below.
+vX.Y/$dir/e2e.log: (Recommended for v1.37+) Raw test execution log.
+vX.Y/$dir/junit.xml: (Recommended for v1.37+) Machine-readable test report (or results.json).
 ```
 
 #### PRODUCT.yaml
@@ -59,12 +61,70 @@ metadata:
   k8s_conformance_url: https://github.com/cncf/k8s-conformance/tree/master/v1.34/turbo-encabulator
 ```
 
+### Hybrid Verification & Automated Tests (v1.37+)
+
+Starting with Kubernetes v1.37, the AI Conformance program supports a **hybrid verification approach** that combines automated test execution with manual attestation:
+
+- **Automated Tests**: Requirements covered by automated tests (e.g., Secure Accelerator Access, Gang Scheduling, Cluster Autoscaling) are **recommended** to be verified by running the upstream [AI Conformance test suite](https://github.com/kubernetes-sigs/ai-conformance/tree/main/test). The generated test output files (`e2e.log`, `junit.xml`, or `results.json`) should be included in your submission directory (`v1.37/$dir/`).
+- **Manual Attestation**: Requirements without automated tests continue to be verified via public documentation or reference URLs in the `evidence` field of your `PRODUCT.yaml`.
+
+#### Running Tests & Generating Test Artifacts
+
+Run the conformance tests against your cluster and generate the necessary artifacts for your submission:
+
+```bash
+# 1. Capture full output log (e2e.log)
+go test -v ./test | tee e2e.log
+
+# 2. Generate machine-readable JSON (results.json)
+go test -v ./test -json > results.json
+
+# 3. Generate JUnit XML report (junit.xml)
+# Option A: Using gotestsum (Recommended - runs via go run)
+go run gotest.tools/gotestsum@latest --junitfile junit.xml -- ./test
+# Option B: Using go-junit-report
+go test -v ./test 2>&1 | go run github.com/jstemmer/go-junit-report/v2@latest > junit.xml
+```
+
+For test execution details, vendor flags, and prerequisites, refer to the upstream [test documentation](https://github.com/kubernetes-sigs/ai-conformance/tree/main/test).
+
+#### Referencing Test Results in `PRODUCT.yaml`
+
+Link your generated test artifacts under the `evidence` field for the corresponding requirement using relative file paths or the `file://` scheme:
+
+```yaml
+    - id: secure_accelerator_access
+      description: "Ensure that access to accelerators from within containers is properly isolated..."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "e2e.log"
+        - "junit.xml"
+```
+or:
+```yaml
+    - id: secure_accelerator_access
+      description: "Ensure that access to accelerators from within containers is properly isolated..."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "file://v1.37/$dir/junit.xml#TestSecureAcceleratorAccess"
+        - "file://v1.37/$dir/e2e.log"
+```
+
+#### Opting Out (N/A Requirements)
+
+If a specific requirement is not applicable to your platform (i.e., you answered "N/A" in the conformance checklist), you may skip or opt out of that specific sub-test:
+- Use test-specific flags if available (for example, leave `-autoscaler-node-pool-label` unset to skip the cluster autoscaling test).
+- Use the `go test -run <regex>` flag to execute only applicable tests.
+- When submitting your results, ensure you provide a clear explanation and justification in the `notes` field of `PRODUCT.yaml` for why the requirement is considered N/A.
+
 ### Requirements
 
 The self conformance file must be submitted without adjustments or changes in spec to the fields `id, description, level`.
 The fields `status, evidence, and notes` need to be filled if the `level` is `MUST`.
 
-To reach conformance all `MUST` spec fields need to be addressed and the evidence needs to be publicly reachable. 
+To reach conformance, all `MUST` spec fields need to be addressed. Evidence can be publicly reachable documentation URLs or submitted test artifacts (such as `e2e.log` and `junit.xml` in your submission directory). 
 
 
 ## Amendment for Private Review
