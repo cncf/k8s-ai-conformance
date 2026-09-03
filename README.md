@@ -60,20 +60,20 @@ Most submissions are a completed checklist plus links to public evidence—think
 
 For the canonical reference tests and example implementations, see the upstream [AI Conformance test suite](https://github.com/kubernetes-sigs/ai-conformance/tree/main/test).
 
-## Hybrid Verification Submission (v1.37+)
+#### Hybrid Verification Submission (v1.37+)
 
 Starting with v1.37, we support a hybrid verification approach that combines automated test results with manual attestation:
 
-1.  **Automated Tests**: For requirements with automated tests (e.g., Secure Accelerator Access, Gang Scheduling), run the test suite and include the output files (`e2e.log`, `junit.xml`) in your submission PR.
+1.  **Automated Tests**: For requirements with automated tests (e.g., Secure Accelerator Access, Gang Scheduling), it is **recommended** that you run the upstream [AI Conformance test suite](https://github.com/kubernetes-sigs/ai-conformance/tree/main/test) and include the generated test artifacts (`e2e.log`, `junit.xml`, or `results.json`) in your submission PR.
 2.  **Manual Attestation**: For requirements without automated tests, continue to provide documentation or reference URLs in the `evidence` field of the checklist YAML.
 
-Reference your automated test results in the checklist YAML using the `file://` scheme or relative paths to your submitted test artifacts.
-The automated tests are not required for certification yet, but they provide additional confidence in your platform's conformance.
+Reference your automated test results in the checklist YAML using relative file paths or the `file://` scheme.
+Starting with v1.37, it is recommended that any requirement covered by an automated test is verified using this test suite.
 
 #### The certification process
 
 1. **Prepare** - Review the [certification requirements](terms-conditions/Certified_AI_Platform.md) and make sure your platform meets them
-2. **Document** - Fill out the conformance checklist and gather evidence (documentation, test results, etc.)
+2. **Document & Test** - Fill out the conformance checklist, run automated tests if applicable, and gather evidence (documentation, test results, etc.)
 3. **Submit** - Create a pull request with your submission to the https://github.com/cncf/k8s-ai-conformance repo.
 4. **Review** - CNCF reviews your submission (typically takes up to 10 business days)
 
@@ -81,12 +81,13 @@ The automated tests are not required for certification yet, but they provide add
 
 - A completed conformance checklist (YAML file)
 - Public documentation showing how your platform meets each requirement
+- (Recommended for v1.37+) Automated test artifacts (`e2e.log`, `junit.xml`, or `results.json`) for requirements covered by automated tests
 - Your product logo in vector format (SVG, EPS, or AI)
 - Proof of Kubernetes conformance
 
-**Note:** Today, certification is based on self-assessment. Automated conformance tests are planned for 2026.
+**Note:** Starting with v1.37, automated tests are available and recommended for applicable requirements. For earlier versions or requirements without automated tests, certification is based on documentation-backed self-assessment.
 
-For detailed instructions on what to include, see [instructions.md](instructions.md#contents-of-the-pr).
+For detailed instructions on running tests and what to include, see [instructions.md](instructions.md#hybrid-verification--automated-tests-v137).
 
 ---
 
@@ -100,7 +101,7 @@ The program is a community-led effort to establish a vendor-neutral baseline for
 |------|----------------|
 | **Documentation** | Help improve guides, add examples, fix typos, clarify confusing parts |
 | **Research** | Identify requirements for new AI workload types (especially agentic workloads) |
-| **Testing** | Help develop automated conformance tests |
+| **Testing** | Help develop automated conformance tests in [kubernetes-sigs/ai-conformance](https://github.com/kubernetes-sigs/ai-conformance/tree/main/test) |
 | **Discussion** | Participate in project meetings and design discussions |
 
 #### How to get involved
@@ -115,8 +116,8 @@ The program is a community-led effort to establish a vendor-neutral baseline for
 
 ```mermaid
 flowchart TD
-    A[Platform must be Kubernetes Conformant] --> B[Complete self-assessment checklist]
-    B --> C[Gather evidence and documentation]
+    A[Platform must be Kubernetes Conformant] --> B[Complete checklist & run automated tests]
+    B --> C[Gather evidence and test artifacts]
     C --> D[Submit pull request]
     D --> E[CNCF reviews submission]
     E -->|Approved| F[Certified for 1 year]

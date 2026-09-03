@@ -12,6 +12,8 @@
 
 * [ ] Does the `vendorName` exactly match your organization's name in the [CNCF Landscape](https://landscape.cncf.io/members)?
 
+* [ ] (For v1.37+ submissions) If using automated test results (recommended for applicable requirements), did you include the test artifacts (`e2e.log`, `junit.xml`, or `results.json`)?
+
 
 For a full list of requirements, please refer to these sections of the docs: [Contents of the PR](https://github.com/cncf/k8s-ai-conformance/blob/main/instructions.md#contents-of-the-pr), and [Requirements](https://github.com/cncf/k8s-ai-conformance/blob/main/instructions.md#requirements).
 
