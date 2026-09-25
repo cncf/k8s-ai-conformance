@@ -119,6 +119,8 @@ If a specific requirement is not applicable to your platform (i.e., you answered
 - Use the `go test -run <regex>` flag to execute only applicable tests.
 - When submitting your results, ensure you provide a clear explanation and justification in the `notes` field of `PRODUCT.yaml` for why the requirement is considered N/A.
 
+`N/A` is accepted on a `MUST` requirement only when that requirement is conditional. Today this is `cluster_autoscaling` alone, for platforms that do not ship a cluster autoscaler. The validator requires `notes` in that case and flags it for reviewer attention. `N/A` on any other `MUST` requirement is rejected.
+
 ### Requirements
 
 The self conformance file must be submitted without adjustments or changes in spec to the fields `id, description, level`.
