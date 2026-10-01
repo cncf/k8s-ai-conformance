@@ -1,0 +1,132 @@
+metadata:
+  kubernetesVersion: v1.36
+  platformName: k0rdent
+  platformVersion: v1.11.0
+  vendorName: The k0rdent Project
+  websiteUrl: https://k0rdent.io
+  repoUrl: https://github.com/k0rdent/kcm
+  documentationUrl: https://docs.k0rdent.io
+  productLogoUrl: https://raw.githubusercontent.com/k0rdent/docs/refs/heads/main/docs/img/k0rdent-logo-horizontal.svg
+  description: "k0rdent is an open-source, Kubernetes-native distributed container management environment for platform engineers."
+  contactEmailAddress: conformance@mirantis.com
+  k8sConformanceUrl: https://github.com/cncf/k8s-conformance/tree/master/v1.36/k0rdent
+
+spec:
+  accelerators:
+    - id: driver_runtime_management
+      description: "Provide a verifiable mechanism for ensuring that compatible accelerator drivers and corresponding container runtime configurations are correctly installed and maintained on nodes with accelerators. Once the accelerator supports exposing driver and runtime version information as part of DRA, then the platform should use the DRA mechanism for verification."
+      level: SHOULD
+      status: Implemented
+      evidence:
+        - https://docs.k0rdent.io/next/governance/cncf/ai-conformance/#driver-runtime-management
+      notes: "The NVIDIA GPU Operator is available in the k0rdent catalog as a ServiceTemplate and is reconciled onto child clusters via MultiClusterService. The operator installs and manages the NVIDIA driver, the NVIDIA Container Toolkit, the device plugin, and the containerd runtime configuration. For this submission GPU Operator v26.7.0 installed driver 595.91.07 on a k0rdent v1.11.0 child cluster (k0s v1.36.3+k0s, Kubernetes v1.36.3) on Azure with an NVIDIA T4 worker (containerd 2.3.3) as part of the automated test run."
+
+    - id: gpu_sharing
+      description: "For accelerators that support static GPU sharing, provide well-defined mechanisms for at least one GPU sharing strategy to improve utilization for workloads that do not require a full dedicated GPU. If hardware-level partitioning is supported, then these fractional GPU resources should be exposed as schedulable resources. If software-based sharing (e.g. time-slicing) is supported, then oversubscription of GPUs should be allowed. Forward-looking: Once the accelerator supports static GPU sharing as part of DRA, the platform should expose the DRA mechanism to allow users to leverage static GPU sharing. Once the accelerator supports dynamic GPU sharing as part of DRA and the partitionable devices feature is GA, the platform should expose the DRA mechanism to allow users to leverage dynamic GPU sharing."
+      level: SHOULD
+      status: Implemented
+      evidence:
+        - https://docs.k0rdent.io/next/governance/cncf/ai-conformance/#gpu-sharing
+      notes: "NVIDIA Device Plugin time-slicing is supported via the GPU Operator ClusterPolicy and configured by a single kubectl patch, with no node restart. A physical GPU is advertised as N schedulable replicas via a ConfigMap. Demonstrated on NVIDIA T4 (MIG is not supported on T4 hardware; time-slicing is the applicable sharing mechanism): four pods report the same GPU UUID while the scheduler treats them as separate nvidia.com/gpu units."
+
+    - id: virtualized_accelerator
+      description: "For accelerators that support virtualized accelerator technologies (e.g. vGPU), provide well-defined mechanisms for these to be exposed and managed, maintaining consistency with physical fractional GPUs. Forward-looking: Once the accelerator supports virtualized accelerator technologies as part of DRA, then the platform should use the DRA mechanism."
+      level: SHOULD
+      status: Not Implemented
+      evidence:
+        - https://docs.k0rdent.io/next/governance/cncf/ai-conformance/#virtualized-accelerator
+      notes: "k0rdent does not ship a packaged vGPU integration. vGPU support depends on NVIDIA vGPU licensing and A100-class or newer hardware, both outside the scope of this submission's evidence cluster (NVIDIA T4). Users running on vGPU-capable hardware can install the vGPU driver and the standard NVIDIA Device Plugin via the GPU Operator; this path is supported upstream but not demonstrated in this submission."
+
+  networking:
+    - id: ai_inference
+      description: "Support the Kubernetes Gateway API with an implementation for advanced traffic management for inference services, which enables capabilities like weighted traffic splitting, header-based routing (for OpenAI protocol headers), and optional integration with service meshes."
+      level: MUST
+      status: Implemented
+      evidence:
+        - https://docs.k0rdent.io/next/governance/cncf/ai-conformance/#ai-inference
+      notes: "k0rdent supports the Kubernetes Gateway API (gateway.networking.k8s.io/v1). Demonstrated with Envoy Gateway installed on a child cluster from the k0rdent catalog envoy-gateway ServiceTemplate (the chart bundles the Gateway API CRDs): HTTPRoute path-based routing to a mock inference backend behind an Azure Standard Load Balancer IP allocated by the child cluster's cloud controller manager."
+
+    - id: advanced_inference_ingress
+      description: "Support an implementation of the Gateway API Inference Extension (GAIE), which can route requests to models hosted on Kubernetes. The implementation supports serving LLMs and making advanced routing decisions (e.g., K/V cache-aware routing) based on metrics and capabilities advertised by the underlying model serving platform."
+      level: SHOULD
+      status: Not Implemented
+      evidence: []
+      notes: "k0rdent does not bundle a Gateway API Inference Extension implementation. Gateway implementations that support the Inference Extension can be installed on child clusters; not demonstrated in this submission."
+
+    - id: high_performance_networking
+      description: "If high performance pod-to-pod communication is needed, then provide well-defined mechanisms for these specialized network resources to be managed and exposed such that their characteristics should be discoverable to enable informed scheduling or workload configuration and to enable pods to attach to multiple network interfaces. Platforms should use DRA as the mechanism to manage and expose these specialized network resources (e.g., DRANET)."
+      level: SHOULD
+      status: Not Implemented
+      evidence: []
+      notes: "k0rdent does not package RDMA, GPUDirect or multi-network components; these depend on host hardware and drivers outside this submission's evidence cluster. Not demonstrated in this submission."
+
+    - id: disaggregated_inference
+      description: "Support the deployment and operation of disaggregated inference architectures. To be conformant, the platform should demonstrate that it can successfully install and run a disaggregated inference solution (e.g., vLLM, SGLang, llm-d, or Dynamo, with separate instances for distinct phases like prefill and decode). Disaggregated serving splits phases such as prefill and decode into separately scalable components so each phase can match different compute/memory/network needs, improving GPU utilization and tail latency while enabling higher throughput under mixed and bursty LLM workloads."
+      level: SHOULD
+      status: Not Implemented
+      evidence: []
+      notes: "k0rdent does not bundle a disaggregated prefill/decode inference stack. Not demonstrated in this submission."
+
+  schedulingOrchestration:
+    - id: gang_scheduling
+      description: "The platform must allow for the installation and successful operation of at least one gang scheduling solution that ensures all-or-nothing scheduling for distributed AI workloads (e.g. Kueue, Volcano, etc.) To be conformant, the vendor must demonstrate that their platform can successfully run at least one such solution."
+      level: MUST
+      status: Implemented
+      evidence:
+        - file://junit.xml#TestGangScheduling
+        - file://e2e.log
+        - https://docs.k0rdent.io/next/governance/cncf/ai-conformance/#gang-scheduling
+      notes: "Verified by the upstream AI Conformance test suite (kubernetes-sigs/ai-conformance@da952539) with Kueue v0.18.2 on a k0rdent v1.11.0 child cluster (k0s v1.36.3+k0s, Kubernetes v1.36.3) on Azure with an NVIDIA T4 worker; TestGangScheduling passed. Test run: https://github.com/Mirantis/cncf-conformance/actions/runs/35820041560. Volcano, available in the k0rdent catalog as a ServiceTemplate, is also documented at the evidence URL: a gang that does not fit is refused in full while a gang that fits binds atomically."
+
+    - id: cluster_autoscaling
+      description: "If the platform provides a cluster autoscaler or an equivalent mechanism, it must be able to scale up/down node groups containing specific accelerator types based on pending pods requesting those accelerators."
+      level: MUST
+      status: Implemented
+      evidence:
+        - https://docs.k0rdent.io/next/governance/cncf/ai-conformance/#cluster-autoscaling
+      notes: "k0rdent does not bundle a cluster-autoscaler implementation. k0rdent provisions clusters via Cluster API and renders standard CAPI MachineDeployment resources, so the upstream Kubernetes cluster-autoscaler with the Cluster API provider (--cloud-provider=clusterapi) integrates without modification. Accelerator-specific scaling is driven by nvidia.com/gpu pod requests and node labels; the NVIDIA Device Plugin from the GPU Operator advertises these resources. The upstream chart is also available in the k0rdent catalog as a cluster-autoscaler ServiceTemplate."
+
+    - id: pod_autoscaling
+      description: "If the platform supports the HorizontalPodAutoscaler, it must function correctly for pods utilizing accelerators. This includes the ability to scale these Pods based on custom metrics relevant to AI/ML workloads."
+      level: MUST
+      status: Implemented
+      evidence:
+        - https://docs.k0rdent.io/next/governance/cncf/ai-conformance/#pod-autoscaling
+      notes: "Standard HorizontalPodAutoscaler API (autoscaling/v2) works with GPU-consuming Deployments. k0rdent child clusters inherit the metrics-server bundled with k0s, so HPA works out of the box. Demonstrated HPA scaling a Deployment that requests nvidia.com/gpu based on CPU utilization, with the scheduler enforcing the cluster's nvidia.com/gpu capacity independently. Custom AI/ML metrics are supported via the standard Custom Metrics API and adapters such as prometheus-adapter or KEDA."
+
+  observability:
+    - id: accelerator_metrics
+      description: "For supported accelerator types, the platform must allow for the installation and successful operation of at least one accelerator metrics solution that exposes fine-grained performance metrics via a standardized, machine-readable metrics endpoint. This must include a core set of metrics for per-accelerator utilization and memory usage. Additionally, other relevant metrics such as temperature, power draw, and interconnect bandwidth should be exposed if the underlying hardware or virtualization layer makes them available. The list of metrics should align with emerging standards, such as OpenTelemetry metrics, to ensure interoperability. The platform may provide a managed solution, but this is not required for conformance."
+      level: MUST
+      status: Implemented
+      evidence:
+        - https://docs.k0rdent.io/next/governance/cncf/ai-conformance/#accelerator-metrics
+      notes: "NVIDIA DCGM Exporter (installed by the GPU Operator) exposes per-GPU metrics on /metrics in Prometheus exposition format, including DCGM_FI_DEV_GPU_UTIL, DCGM_FI_DEV_FB_USED, DCGM_FI_DEV_GPU_TEMP and DCGM_FI_DEV_POWER_USAGE. Integration demonstrated with kube-prometheus-stack via ServiceMonitor; labels include GPU UUID, PCI bus ID, driver version, model name, and host. k0rdent Observability and FinOps (KOF, https://docs.k0rdent.io/next/admin/kof/) uses the same ServiceMonitor discovery contract and exposition format."
+
+    - id: ai_service_metrics
+      description: "Provide a monitoring system capable of discovering and collecting metrics from workloads that expose them in a standard format (e.g. Prometheus exposition format). This ensures easy integration for collecting key metrics from common AI frameworks and servers."
+      level: MUST
+      status: Implemented
+      evidence:
+        - https://docs.k0rdent.io/next/governance/cncf/ai-conformance/#ai-service-metrics
+      notes: "kube-prometheus-stack (prometheus-community Helm chart) discovers and scrapes workload metrics via the standard ServiceMonitor and PodMonitor resources. Demonstrated with a sample inference-shape workload exposing /metrics in Prometheus format. The same mechanism applies to AI inference servers (vLLM, KServe, Triton, etc.). KOF (https://docs.k0rdent.io/next/admin/kof/) consumes the same ServiceMonitor/PodMonitor contract."
+
+  security:
+    - id: secure_accelerator_access
+      description: "Ensure that access to accelerators from within containers is properly isolated and mediated by the Kubernetes resource management framework (device plugin or DRA) and container runtime, preventing unauthorized access or interference between workloads."
+      level: MUST
+      status: Implemented
+      evidence:
+        - file://junit.xml#TestSecureAcceleratorAccess
+        - file://e2e.log
+        - https://docs.k0rdent.io/next/governance/cncf/ai-conformance/#secure-accelerator-access
+      notes: "Verified by the upstream AI Conformance test suite (kubernetes-sigs/ai-conformance@da952539) on a k0rdent v1.11.0 child cluster (k0s v1.36.3+k0s, Kubernetes v1.36.3) on Azure with an NVIDIA T4 worker, with the NVIDIA GPU Operator v26.7.0 device plugin; TestSecureAcceleratorAccess passed. Test run: https://github.com/Mirantis/cncf-conformance/actions/runs/35820041560. Accelerator access is mediated by the NVIDIA Device Plugin via the Kubernetes device-plugin API: pods that do not request nvidia.com/gpu have no access to GPU devices, and the scheduler enforces per-GPU capacity."
+
+  operator:
+    - id: robust_controller
+      description: "The platform must prove that at least one complex AI operator with a CRD (e.g., Ray, Kubeflow) can be installed and functions reliably. This includes verifying that the operator's pods run correctly, its webhooks are operational, and its custom resources can be reconciled."
+      level: MUST
+      status: Implemented
+      evidence:
+        - https://docs.k0rdent.io/next/governance/cncf/ai-conformance/#robust-controller
+      notes: "The KubeRay operator installs on k0rdent child clusters from the k0rdent catalog kuberay-operator ServiceTemplate. RayCluster CR reconciliation demonstrated (head plus worker pods and the headless Service), a Ray distributed task executes end to end, and the operator recreates a deleted head pod automatically."
