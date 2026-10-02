@@ -1,0 +1,121 @@
+# Kubernetes AI Conformance Checklist
+# Notes: This checklist is based on the Kubernetes AI Conformance document.
+# Participants should fill in the 'status', 'evidence', and 'notes' fields for each requirement.
+
+metadata:
+  kubernetesVersion: v1.36
+  platformName: "Nutanix Kubernetes Platform"
+  platformVersion: "v2.19.0-dev.34"
+  vendorName: "Nutanix"
+  websiteUrl: "https://www.nutanix.com/products/kubernetes-management-platform"
+  documentationUrl: "https://nutanix-cloud-native.github.io/nkp-partner-catalog/docs/ai-conformance/2.19"
+  productLogoUrl: "https://landscape.cncf.io/logos/e431a53fad410e45d90fce820e01c56269b184f24b5b97b190ba65ce7fbfd51a.svg"
+  description: "Nutanix Kubernetes Platform (NKP) is an enterprise-grade platform for deploying, managing, and operating Kubernetes clusters across on-premises, hybrid, and multi-cloud environments. NKP provides a curated catalog of AI/ML applications with one-click deployment via Flux CD, GPU operator integration, and full lifecycle management."
+  contactEmailAddress: "nkp@nutanix.com"
+  k8sConformanceUrl: "https://github.com/cncf/k8s-conformance/tree/master/v1.36/konvoy"
+
+spec:
+  accelerators:
+    - id: driver_runtime_management
+      description: "Provide a verifiable mechanism for ensuring that compatible accelerator drivers and corresponding container runtime configurations are correctly installed and maintained on nodes with accelerators. Once the accelerator supports exposing driver and runtime version information as part of DRA, then the platform should use the DRA mechanism for verification."
+      level: SHOULD
+      status: "Implemented"
+      evidence:
+        - "https://nutanix-cloud-native.github.io/nkp-partner-catalog/docs/ai-conformance/2.19#driver-runtime-management"
+      notes: "NKP ships the NVIDIA GPU Operator (v26.3.3) as a platform component to manage accelerator drivers, container toolkit, device plugin, and runtime configuration on GPU nodes. Verified on NKP 2.19.0-dev.34 (Kubernetes v1.36.2): GPU node reported driver 580.126.18, CUDA runtime 13.0, and containerd 2.3.1-d2iq.1; the NVIDIA DRA driver publishes the same driver version on DeviceClass gpu.nvidia.com / ResourceSlice."
+    - id: gpu_sharing
+      description: "For accelerators that support static GPU sharing, provide well-defined mechanisms for at least one GPU sharing strategy to improve utilization for workloads that do not require a full dedicated GPU. If hardware-level partitioning is supported, then these fractional GPU resources should be exposed as schedulable resources. If software-based sharing (e.g. time-slicing) is supported, then oversubscription of GPUs should be allowed. Forward-looking: Once the accelerator supports static GPU sharing as part of DRA, the platform should expose the DRA mechanism to allow users to leverage static GPU sharing. Once the accelerator supports dynamic GPU sharing as part of DRA and the partitionable devices feature is GA, the platform should expose the DRA mechanism to allow users to leverage dynamic GPU sharing."
+      level: SHOULD
+      status: "Implemented"
+      evidence:
+        - "https://nutanix-cloud-native.github.io/nkp-partner-catalog/docs/ai-conformance/2.19#gpu-sharing"
+      notes: "NKP satisfies GPU sharing through the NVIDIA GPU Operator using time-slicing (software-based oversubscription). Verified on an NVIDIA A40: four pods each requesting nvidia.com/gpu=1 were scheduled onto one physical GPU and all reported the same UUID. The NVIDIA DRA driver is also installed for the forward-looking DRA sharing path."
+    - id: virtualized_accelerator
+      description: "For accelerators that support virtualized accelerator technologies (e.g. vGPU), provide well-defined mechanisms for these to be exposed and managed, maintaining consistency with physical fractional GPUs. Forward-looking: Once the accelerator supports virtualized accelerator technologies as part of DRA, then the platform should use the DRA mechanism."
+      level: SHOULD
+      status: "Implemented"
+      evidence:
+        - "https://nutanix-cloud-native.github.io/nkp-partner-catalog/docs/ai-conformance/2.19#virtualized-accelerator-vgpu"
+      notes: "NKP supports vGPU natively: worker node pools can be created as vGPU-enabled node pools (in addition to GPU passthrough) on Nutanix AHV and VMware vSphere. The NVIDIA GPU Operator exposes each virtual GPU as nvidia.com/gpu through the same device plugin as physical GPUs. The verification node for this submission was passthrough A40; the NVIDIA DRA driver is installed (DeviceClasses include gpu.nvidia.com, mig.nvidia.com, vfio.gpu.nvidia.com) for the forward-looking vGPU-over-DRA path."
+  networking:
+    - id: ai_inference
+      description: "Support the Kubernetes Gateway API with an implementation for advanced traffic management for inference services, which enables capabilities like weighted traffic splitting, header-based routing (for OpenAI protocol headers), and optional integration with service meshes."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "https://nutanix-cloud-native.github.io/nkp-partner-catalog/docs/ai-conformance/2.19#support-the-gateway-api"
+      notes: "NKP ships the Gateway API CRDs and provides Envoy Gateway (catalog app envoy-gateway-nai 1.8.1) for advanced inference traffic management. Verified: GatewayClass eg Accepted; Gateway inference-gw Programmed with a platform LoadBalancer address; HTTPRoute demonstrated 80/20 weighted traffic splitting (50 requests → 40/10) and header-based canary routing (x-model-version: canary pinned all requests to model-v2)."
+    - id: advanced_inference_ingress
+      description: "Support an implementation of the Gateway API Inference Extension (GAIE), which can route requests to models hosted on Kubernetes. The implementation supports serving LLMs and making advanced routing decisions (e.g., K/V cache-aware routing) based on metrics and capabilities advertised by the underlying model serving platform."
+      level: SHOULD
+      status: "Implemented"
+      evidence:
+        - "https://nutanix-cloud-native.github.io/nkp-partner-catalog/docs/ai-conformance/2.19#gateway-api-inference-extension"
+      notes: "Nutanix AI 2.8.0 installs the AI Gateway controller and ships nai-epp-inference-scheduler as the endpoint picker. Verified end-to-end: Gateway → HTTPRoute → InferencePool → NAI EPP → model pods. EPP used queue-scorer and kv-cache-utilization-scorer; 80/80 live chat-completion requests were routed to the low KV-cache / empty-queue endpoint."
+    - id: high_performance_networking
+      description: "If high performance pod-to-pod communication is needed, then provide well-defined mechanisms for these specialized network resources to be managed and exposed such that their characteristics should be discoverable to enable informed scheduling or workload configuration and to enable pods to attach to multiple network interfaces. Platforms should use DRA as the mechanism to manage and expose these specialized network resources (e.g., DRANET)."
+      level: SHOULD
+      status: "Partially Implemented"
+      evidence:
+        - "https://nutanix-cloud-native.github.io/nkp-partner-catalog/docs/ai-conformance/2.19#high-performance-networking"
+      notes: "The NVIDIA Network Operator (chart network-operator@26.1.0) and Multus are installed; HostDeviceNetwork, IPoIBNetwork, MacvlanNetwork, and NicClusterPolicy CRDs are available. A live high-performance fabric, NetworkAttachmentDefinition objects, RDMA device, and DRANET ResourceSlice were not demonstrated on the evidence cluster."
+    - id: disaggregated_inference
+      description: "Support the deployment and operation of disaggregated inference architectures. To be conformant, the platform should demonstrate that it can successfully install and run a disaggregated inference solution (e.g., vLLM, SGLang, llm-d, or Dynamo, with separate instances for distinct phases like prefill and decode). Disaggregated serving splits phases such as prefill and decode into separately scalable components so each phase can match different compute/memory/network needs, improving GPU utilization and tail latency while enabling higher throughput under mixed and bursty LLM workloads."
+      level: SHOULD
+      status: "Implemented"
+      evidence:
+        - "https://nutanix-cloud-native.github.io/nkp-partner-catalog/docs/ai-conformance/2.19#disaggregated-inference"
+      notes: "SGLang (lmsysorg/sglang:v0.5.15) was installed and run as separate prefill and decode Deployments on distinct GPUs with --disaggregation-mode=prefill|decode and NIXL/UCX transfer, plus an SGLang PD router (--pd-disaggregation). Prefill and decode completed PD disaggregation warmup and initialized NIXL with the UCX backend."
+  schedulingOrchestration:
+    - id: gang_scheduling
+      description: "The platform must allow for the installation and successful operation of at least one gang scheduling solution that ensures all-or-nothing scheduling for distributed AI workloads (e.g. Kueue, Volcano, etc.) To be conformant, the vendor must demonstrate that their platform can successfully run at least one such solution."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "https://nutanix-cloud-native.github.io/nkp-partner-catalog/docs/ai-conformance/2.19#gang-scheduling"
+      notes: "NKP ships Kueue (kueue-0.18.0) in the AI Applications catalog. Verified: a 3-pod job fitting ClusterQueue quota was admitted atomically; an oversized 8-CPU gang was refused in full (Workload Pending / QuotaReserved=False, zero pods placed)."
+    - id: cluster_autoscaling
+      description: "If the platform provides a cluster autoscaler or an equivalent mechanism, it must be able to scale up/down node groups containing specific accelerator types based on pending pods requesting those accelerators."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "https://nutanix-cloud-native.github.io/nkp-partner-catalog/docs/ai-conformance/2.19#cluster-autoscaling"
+      notes: "NKP deploys the upstream Kubernetes Cluster Autoscaler (clusterapi cloud provider). Verified: the autoscaler discovers the GPU MachineDeployment as its own node group with independent min/max, separate from the Rocky worker pool (ClusterClass nkp-nutanix-v2.19.0-dev.34)."
+    - id: pod_autoscaling
+      description: "If the platform supports the HorizontalPodAutoscaler, it must function correctly for pods utilizing accelerators. This includes the ability to scale these Pods based on custom metrics relevant to AI/ML workloads."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "https://nutanix-cloud-native.github.io/nkp-partner-catalog/docs/ai-conformance/2.19#horizontal-pod-autoscaler"
+      notes: "NKP ships the Prometheus Adapter, which serves metrics.k8s.io and custom.metrics.k8s.io including DCGM GPU metrics. Verified: an HPA scaled a GPU-consuming Deployment on DCGM_FI_DEV_GPU_UTIL (read 100 vs target 70 and issued SuccessfulRescale)."
+  observability:
+    - id: accelerator_metrics
+      description: "For supported accelerator types, the platform must allow for the installation and successful operation of at least one accelerator metrics solution that exposes fine-grained performance metrics via a standardized, machine-readable metrics endpoint. This must include a core set of metrics for per-accelerator utilization and memory usage. Additionally, other relevant metrics such as temperature, power draw, and interconnect bandwidth should be exposed if the underlying hardware or virtualization layer makes them available. The list of metrics should align with emerging standards, such as OpenTelemetry metrics, to ensure interoperability. The platform may provide a managed solution, but this is not required for conformance."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "https://nutanix-cloud-native.github.io/nkp-partner-catalog/docs/ai-conformance/2.19#accelerator-performance-metrics"
+      notes: "NVIDIA GPU Operator includes DCGM Exporter (Prometheus text on port 9400). Verified on A40: DCGM_FI_DEV_GPU_UTIL, DCGM_FI_DEV_FB_USED, DCGM_FI_DEV_GPU_TEMP, and DCGM_FI_DEV_POWER_USAGE move under load; Prometheus Adapter serves DCGM_FI_DEV_GPU_UTIL to HPA."
+    - id: ai_service_metrics
+      description: "Provide a monitoring system capable of discovering and collecting metrics from workloads that expose them in a standard format (e.g. Prometheus exposition format). This ensures easy integration for collecting key metrics from common AI frameworks and servers."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "https://nutanix-cloud-native.github.io/nkp-partner-catalog/docs/ai-conformance/2.19#ai-job-and-inference-service-metrics"
+      notes: "NKP includes kube-prometheus-stack, Grafana, Thanos, and Prometheus Adapter. Verified with Kueue (kueue_* admission/quota metrics matching live queue state) and KServe 0.19.0 installed from the AI Applications catalog."
+  security:
+    - id: secure_accelerator_access
+      description: "Ensure that access to accelerators from within containers is properly isolated and mediated by the Kubernetes resource management framework (device plugin or DRA) and container runtime, preventing unauthorized access or interference between workloads."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "https://nutanix-cloud-native.github.io/nkp-partner-catalog/docs/ai-conformance/2.19#secure-accelerator-access"
+      notes: "GPU access is mediated by the NVIDIA device plugin and container runtime through Kubernetes resource management. Verified: a pod requesting nvidia.com/gpu sees the A40; a second GPU request stays Pending once capacity is exhausted; a pod that does not request a GPU has no NVIDIA device files. DRA also publishes the same GPU as gpu.nvidia.com for claim-based allocation."
+  operator:
+    - id: robust_controller
+      description: "The platform must prove that at least one complex AI operator with a CRD (e.g., Ray, Kubeflow) can be installed and functions reliably. This includes verifying that the operator's pods run correctly, its webhooks are operational, and its custom resources can be reconciled."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "https://nutanix-cloud-native.github.io/nkp-partner-catalog/docs/ai-conformance/2.19#robust-crd-and-controller-operation"
+      notes: "Verified with the Slurm Operator (slurm-operator-1.1.1, slinky.slurm.net/v1beta1) from the AI Applications catalog: controller and webhook pods Running, validating/mutating webhooks Ready (malformed NodeSet rejected), and a smoke Helm install reconciled Controller/NodeSet custom resources."
