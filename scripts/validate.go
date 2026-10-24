@@ -3,12 +3,14 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -205,9 +207,17 @@ func validateProduct(path string, cncfMembers map[string]bool) bool {
 	var mu sync.Mutex
 	var wg sync.WaitGroup
 
+	warnings := []string{}
+
 	addError := func(msg string) {
 		mu.Lock()
 		errors = append(errors, msg)
+		mu.Unlock()
+	}
+
+	addWarning := func(msg string) {
+		mu.Lock()
+		warnings = append(warnings, msg)
 		mu.Unlock()
 	}
 
@@ -251,7 +261,9 @@ func validateProduct(path string, cncfMembers map[string]bool) bool {
 					wg.Add(1)
 					go func(url, fName string) {
 						defer wg.Done()
-						if err := validateURL(url); err != nil {
+						if err := validateURL(url); isRateLimited(err) {
+							addWarning(fmt.Sprintf("k8sConformanceUrl could not be verified: %s (%v)", url, err))
+						} else if err != nil {
 							addError(fmt.Sprintf("k8sConformanceUrl is not accessible: %s (%v)", url, err))
 						}
 					}(strVal, field)
@@ -260,7 +272,9 @@ func validateProduct(path string, cncfMembers map[string]bool) bool {
 				wg.Add(1)
 				go func(url, fName string) {
 					defer wg.Done()
-					if err := validateURL(url); err != nil {
+					if err := validateURL(url); isRateLimited(err) {
+						addWarning(fmt.Sprintf("URL in metadata %s could not be verified: %s (%v)", fName, url, err))
+					} else if err != nil {
 						addError(fmt.Sprintf("Invalid URL in metadata %s: %s (%v)", fName, url, err))
 					}
 				}(strVal, field)
@@ -337,7 +351,9 @@ func validateProduct(path string, cncfMembers map[string]bool) bool {
 					go func(url, reqID string) {
 						defer wg.Done()
 						if strings.HasPrefix(url, "http://") || strings.HasPrefix(url, "https://") {
-							if err := validateURL(url); err != nil {
+							if err := validateURL(url); isRateLimited(err) {
+								addWarning(fmt.Sprintf("Evidence URL for '%s' could not be verified: %s (%v)", reqID, url, err))
+							} else if err != nil {
 								addError(fmt.Sprintf("Invalid evidence URL for '%s': %s (%v)", reqID, url, err))
 							}
 						} else {
@@ -354,6 +370,13 @@ func validateProduct(path string, cncfMembers map[string]bool) bool {
 	}
 
 	wg.Wait()
+
+	if len(warnings) > 0 {
+		fmt.Println("Warnings:")
+		for _, w := range warnings {
+			fmt.Printf("  - %s\n", w)
+		}
+	}
 
 	if len(errors) > 0 {
 		fmt.Println("Validation failed:")
@@ -377,27 +400,75 @@ func loadYaml(path string) (*ConformanceDoc, error) {
 	return &doc, err
 }
 
+// errRateLimited is returned when a URL still answers 429 after all retries.
+// Callers report it as a warning: the URL could not be verified, but it is
+// not known to be broken either.
+var errRateLimited = errors.New("rate limited (HTTP 429) after retries")
+
+func isRateLimited(err error) bool { return errors.Is(err, errRateLimited) }
+
+// urlSem bounds the number of concurrent URL checks so we don't trigger
+// rate limits on vendor sites in the first place.
+var urlSem = make(chan struct{}, 8)
+
+var (
+	maxRetries  = 4
+	baseBackoff = 1 * time.Second
+	maxBackoff  = 30 * time.Second
+)
+
 func validateURL(urlStr string) error {
+	urlSem <- struct{}{}
+	defer func() { <-urlSem }()
+
 	client := &http.Client{
 		Timeout: 30 * time.Second,
 	}
 	// Try HEAD first
-	resp, err := doRequest(client, http.MethodHead, urlStr)
-	if err == nil && (resp.StatusCode < 400 || resp.StatusCode == http.StatusTooManyRequests) {
+	resp, err := doRequestWithRetry(client, http.MethodHead, urlStr)
+	if err == nil && resp.StatusCode < 400 {
 		resp.Body.Close()
 		return nil
 	}
+	if err == nil {
+		resp.Body.Close()
+	}
 
 	// If HEAD fails or returns error, try GET
-	resp, err = doRequest(client, http.MethodGet, urlStr)
+	resp, err = doRequestWithRetry(client, http.MethodGet, urlStr)
 	if err != nil {
 		return err
 	}
 	defer resp.Body.Close()
-	if resp.StatusCode >= 400 && resp.StatusCode != http.StatusTooManyRequests {
+	if resp.StatusCode == http.StatusTooManyRequests {
+		return errRateLimited
+	}
+	if resp.StatusCode >= 400 {
 		return fmt.Errorf("status code %d", resp.StatusCode)
 	}
 	return nil
+}
+
+// doRequestWithRetry retries 429 responses with exponential backoff,
+// honouring Retry-After (in seconds) when the server sends it.
+func doRequestWithRetry(client *http.Client, method, url string) (*http.Response, error) {
+	backoff := baseBackoff
+	for attempt := 0; ; attempt++ {
+		resp, err := doRequest(client, method, url)
+		if err != nil || resp.StatusCode != http.StatusTooManyRequests || attempt >= maxRetries {
+			return resp, err
+		}
+		wait := backoff
+		if secs, perr := strconv.Atoi(resp.Header.Get("Retry-After")); perr == nil && secs >= 0 {
+			wait = time.Duration(secs) * time.Second
+		}
+		if wait > maxBackoff {
+			wait = maxBackoff
+		}
+		resp.Body.Close()
+		time.Sleep(wait)
+		backoff *= 2
+	}
 }
 
 // doRequest creates an HTTP request that honestly identifies this validator,
