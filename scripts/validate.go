@@ -3,10 +3,10 @@
 package main
 
 import (
-	"errors"
 	"bufio"
 	"encoding/json"
 	"encoding/xml"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -625,19 +625,11 @@ func validateProduct(path string, cncfMembers map[string]bool) bool {
 	var mu sync.Mutex
 	var wg sync.WaitGroup
 
-	warnings := []string{}
-
 	addError := func(msg string) {
 		mu.Lock()
 		errors = append(errors, msg)
 		mu.Unlock()
 	}
-	addWarning := func(msg string) {
-		mu.Lock()
-		warnings = append(warnings, msg)
-		mu.Unlock()
-	}
-
 	addWarning := func(msg string) {
 		mu.Lock()
 		warnings = append(warnings, msg)
@@ -765,18 +757,13 @@ func validateProduct(path string, cncfMembers map[string]bool) bool {
 					if link == "" {
 						continue
 					}
-					wg.Add(1)
-					go func(url, reqID string) {
-						defer wg.Done()
-						if strings.HasPrefix(url, "http://") || strings.HasPrefix(url, "https://") {
-							if err := validateURL(url); isRateLimited(err) {
-								addWarning(fmt.Sprintf("Evidence URL for '%s' could not be verified: %s (%v)", reqID, url, err))
-							} else if err != nil {
 					if strings.HasPrefix(link, "http://") || strings.HasPrefix(link, "https://") {
 						wg.Add(1)
 						go func(url, reqID string) {
 							defer wg.Done()
-							if err := validateURL(url); err != nil {
+							if err := validateURL(url); isRateLimited(err) {
+								addWarning(fmt.Sprintf("Evidence URL for '%s' could not be verified: %s (%v)", reqID, url, err))
+							} else if err != nil {
 								addError(fmt.Sprintf("Invalid evidence URL for '%s': %s (%v)", reqID, url, err))
 							}
 						}(link, sReq.ID)
@@ -811,11 +798,6 @@ func validateProduct(path string, cncfMembers map[string]bool) bool {
 
 	wg.Wait()
 
-	if len(warnings) > 0 {
-		fmt.Println("Warnings:")
-		for _, w := range warnings {
-			fmt.Printf("  - %s\n", w)
-		}
 	for _, w := range warnings {
 		fmt.Printf("::warning file=%s::%s\n", path, w)
 	}

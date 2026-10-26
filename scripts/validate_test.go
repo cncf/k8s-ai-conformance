@@ -5,6 +5,9 @@ package main
 import (
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
+	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -65,11 +68,8 @@ func TestValidateURLNotFoundIsError(t *testing.T) {
 	err := validateURL(srv.URL)
 	if err == nil || isRateLimited(err) {
 		t.Fatalf("expected a hard error for 404, got %v", err)
-	"os"
-	"path/filepath"
-	"strings"
-	"testing"
-)
+	}
+}
 
 func TestSupportsHybridVerification(t *testing.T) {
 	cases := map[string]bool{
