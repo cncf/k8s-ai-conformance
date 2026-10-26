@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites tests="7" failures="0" errors="0" time="251.088524">
+	<testsuite tests="7" failures="0" time="251.089000" name="github.com/kubernetes-sigs/ai-conformance/test" timestamp="2026-10-26T13:56:38Z">
+		<properties>
+			<property name="go.version" value="go1.27.3 linux/amd64"></property>
+		</properties>
+		<testcase classname="github.com/kubernetes-sigs/ai-conformance/test" name="TestSecureAcceleratorAccess/PositiveAccessTest" time="39.290000"></testcase>
+		<testcase classname="github.com/kubernetes-sigs/ai-conformance/test" name="TestSecureAcceleratorAccess/NegativeIsolationTest" time="37.070000"></testcase>
+		<testcase classname="github.com/kubernetes-sigs/ai-conformance/test" name="TestSecureAcceleratorAccess/MultiContainerIsolationTest" time="37.070000"></testcase>
+		<testcase classname="github.com/kubernetes-sigs/ai-conformance/test" name="TestSecureAcceleratorAccess" time="119.480000"></testcase>
+		<testcase classname="github.com/kubernetes-sigs/ai-conformance/test" name="TestGangScheduling/PositiveGangScheduling" time="16.149000"></testcase>
+		<testcase classname="github.com/kubernetes-sigs/ai-conformance/test" name="TestGangScheduling/NegativeGangScheduling" time="30.970000"></testcase>
+		<testcase classname="github.com/kubernetes-sigs/ai-conformance/test" name="TestGangScheduling" time="131.590000"></testcase>
+	</testsuite>
+</testsuites>

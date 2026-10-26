@@ -1,0 +1,141 @@
+# Kubernetes AI Conformance Checklist - v1.37
+# Notes: This checklist is based on the Kubernetes AI Conformance document.
+# Participants should fill in the 'status', 'evidence', and 'notes' fields for each requirement.
+
+metadata:
+  kubernetesVersion: v1.37
+  platformName: RKE2
+  platformVersion: v1.37
+  vendorName: SUSE
+  websiteUrl: https://www.rancher.com/products/secure-kubernetes-distribution
+  documentationUrl: https://documentation.suse.com/cloudnative/rke2/
+  productLogoUrl: https://cdn.bfldr.com/FQEVVFCB/at/bxqnzwvvzpwtjqb5cxthf8/SUSE_CloudNative_pos-green-stacked.svg
+  description: RKE2 is an enterprise-grade conformant Kubernetes distribution that is a foundational component of SUSE AI and SUSE Rancher Prime.
+  k8sConformanceUrl: https://github.com/cncf/k8s-conformance/tree/master/v1.37/rke2
+  contactEmailAddress: mbuil@suse.com
+
+spec:
+  accelerators:
+    - id: driver_runtime_management
+      description: "Provide a verifiable mechanism for ensuring that compatible accelerator drivers and corresponding container runtime configurations are correctly installed and maintained on nodes with accelerators. Once the accelerator supports exposing driver and runtime version information as part of DRA, then the platform should use the DRA mechanism for verification."
+      level: SHOULD
+      status: "Implemented"
+      evidence:
+        - https://documentation.suse.com/cloudnative/rke2/latest/en/reference/ai_conformance.html#_driver_runtime_management
+      notes: ""
+    - id: gpu_sharing
+      description: "For accelerators that support static GPU sharing, provide well-defined mechanisms for at least one GPU sharing strategy to improve utilization for workloads that do not require a full dedicated GPU. If hardware-level partitioning is supported, then these fractional GPU resources should be exposed as schedulable resources. If software-based sharing (e.g. time-slicing) is supported, then oversubscription of GPUs should be allowed. Forward-looking: Once the accelerator supports static GPU sharing as part of DRA, the platform should expose the DRA mechanism to allow users to leverage static GPU sharing. Once the accelerator supports dynamic GPU sharing as part of DRA and the partitionable devices feature is GA, the platform should expose the DRA mechanism to allow users to leverage dynamic GPU sharing."
+      level: SHOULD
+      status: "Implemented"
+      evidence:
+        - https://documentation.suse.com/cloudnative/rke2/latest/en/reference/ai_conformance.html#_gpu_sharing_support
+      notes: ""
+    - id: virtualized_accelerator
+      description: "For accelerators that support virtualized accelerator technologies (e.g. vGPU), provide well-defined mechanisms for these to be exposed and managed, maintaining consistency with physical fractional GPUs. Forward-looking: Once the accelerator supports virtualized accelerator technologies as part of DRA, then the platform should use the DRA mechanism."
+      level: SHOULD
+      status: "Implemented"
+      evidence:
+        - https://documentation.suse.com/cloudnative/rke2/latest/en/reference/ai_conformance.html#_maintain_api_consistency_when_using_vgpus_and_gpus
+      notes: ""
+  networking:
+    - id: ai_inference
+      description: "Support the Kubernetes Gateway API with an implementation for advanced traffic management for inference services, which enables capabilities like weighted traffic splitting, header-based routing (for OpenAI protocol headers), and optional integration with service meshes."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - https://documentation.suse.com/cloudnative/rke2/latest/en/reference/ai_conformance.html#_support_the_gateway_api
+      notes: ""
+    - id: advanced_inference_ingress
+      description: "Support an implementation of the Gateway API Inference Extension (GAIE), which can route requests to models hosted on Kubernetes. The implementation supports serving LLMs and making advanced routing decisions (e.g., K/V cache-aware routing) based on metrics and capabilities advertised by the underlying model serving platform."
+      level: SHOULD
+      status: "Implemented"
+      evidence:
+        - https://documentation.suse.com/cloudnative/rke2/latest/en/reference/ai_conformance.html#_advanced_inference_ingress
+      notes: "Verified end-to-end routing (Gateway -> HTTPRoute -> InferencePool -> EPP -> pod) using agentgateway and the upstream llm-d inference simulator in place of a GPU-backed model. Metrics-driven routing under load across multiple backends was not independently exercised."
+    - id: high_performance_networking
+      description: "If high performance pod-to-pod communication is needed, then provide well-defined mechanisms for these specialized network resources to be managed and exposed such that their characteristics should be discoverable to enable informed scheduling or workload configuration and to enable pods to attach to multiple network interfaces. Platforms should use DRA as the mechanism to manage and expose these specialized network resources (e.g., DRANET)."
+      level: SHOULD
+      status: "Implemented"
+      evidence:
+        - https://documentation.suse.com/cloudnative/rke2/latest/en/reference/ai_conformance.html#_high_performance_networking
+        - https://documentation.suse.com/suse-telco/3.6/html/telco/sriov.html
+      notes: "RKE2 exposes specialized NICs via the SR-IOV Network Operator (or Device Plugin), making VF characteristics (PCI address, driver, vendor, deviceID, totalvfs) discoverable through SriovNetworkNodeState; a Multus NetworkAttachmentDefinition lets pods attach additional high-performance interfaces. This documented, production-proven workflow uses SR-IOV rather than a DRANET DRA driver."
+    - id: disaggregated_inference
+      description: "Support the deployment and operation of disaggregated inference architectures. To be conformant, the platform should demonstrate that it can successfully install and run a disaggregated inference solution (e.g., vLLM, SGLang, llm-d, or Dynamo, with separate instances for distinct phases like prefill and decode). Disaggregated serving splits phases such as prefill and decode into separately scalable components so each phase can match different compute/memory/network needs, improving GPU utilization and tail latency while enabling higher throughput under mixed and bursty LLM workloads."
+      level: SHOULD
+      status: "Implemented"
+      evidence:
+        - https://documentation.suse.com/cloudnative/rke2/latest/en/reference/ai_conformance.html#_disaggregated_inference
+      notes: "Verified on RKE2 using the upstream llm-d inference simulator's prefill/decode example: separate prefill and decode Deployments with a routing sidecar handling the handoff between them. Pod logs show each phase served by a distinct pod with distinct request IDs and durations consistent with the configured workload. Disaggregation logic itself comes from the serving framework (llm-d/vLLM/SGLang/Dynamo); this confirms RKE2's scheduling and pod-to-pod networking do not impede such a topology."
+  schedulingOrchestration:
+    - id: gang_scheduling
+      description: "The platform must allow for the installation and successful operation of at least one gang scheduling solution that ensures all-or-nothing scheduling for distributed AI workloads (e.g. Kueue, Volcano, etc.) To be conformant, the vendor must demonstrate that their platform can successfully run at least one such solution."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - https://documentation.suse.com/cloudnative/rke2/latest/en/reference/ai_conformance.html#_gang_scheduling
+        - "file://v1.37/rke2/junit.xml#TestGangScheduling"
+        - "file://v1.37/rke2/results.json#TestGangScheduling"
+        - "file://v1.37/rke2/e2e.log"
+      notes: "Verified via the upstream AI Conformance test suite (TestGangScheduling) against RKE2 1.37.1 with Volcano as the gang scheduler. Both subtests passed: PositiveGangScheduling (a 2-pod Job is admitted and completes all-or-nothing) and NegativeGangScheduling (a 1000-pod Job, which can never fit, stays at 0 bound pods for the full observation window; no partial scheduling). The suite's hardcoded 60s post-test namespace-cleanup window was insufficient on this cluster, since the negative test's 1000 Pod objects (created by the Job controller regardless of scheduling outcome) take longer than that to delete; this is a test-harness timing assumption unrelated to gang-scheduling correctness -- confirmed by isolating the control-plane node from workload scheduling, which did not change the cleanup time, since the bottleneck is control-plane API/etcd throughput for bulk object churn, not node placement. The local test run used a 120s cleanup window instead of the default 60s; the gang-scheduling behavior itself was unaffected."
+    - id: cluster_autoscaling
+      description: "If the platform provides a cluster autoscaler or an equivalent mechanism, it must be able to scale up/down node groups containing specific accelerator types based on pending pods requesting those accelerators."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - https://documentation.suse.com/cloudnative/rke2/latest/en/reference/ai_conformance.html#_cluster_autoscaler
+        - https://github.com/kubernetes/autoscaler/tree/master/cluster-autoscaler
+      notes: "RKE2 does not ship its own cluster autoscaler. RKE2 is deployable on cloud and virtualization platforms supported by the upstream Kubernetes cluster-autoscaler (AWS, Azure, GCP, etc.); on those platforms the standard cluster-autoscaler component runs unmodified against RKE2-managed nodes and reacts to Pending pods requesting accelerator resources, as documented for Azure in the linked guide. On-premises/bare-metal deployments do not exercise this path."
+    - id: pod_autoscaling
+      description: "If the platform supports the HorizontalPodAutoscaler, it must function correctly for pods utilizing accelerators. This includes the ability to scale these Pods based on custom metrics relevant to AI/ML workloads."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - https://documentation.suse.com/cloudnative/rke2/latest/en/reference/ai_conformance.html#_horizontal_pod_autoscaler
+      notes: ""
+  observability:
+    - id: accelerator_metrics
+      description: "For supported accelerator types, the platform must allow for the installation and successful operation of at least one accelerator metrics solution that exposes fine-grained performance metrics via a standardized, machine-readable metrics endpoint. This must include a core set of metrics for per-accelerator utilization and memory usage. Additionally, other relevant metrics such as temperature, power draw, and interconnect bandwidth should be exposed if the underlying hardware or virtualization layer makes they available. The list of metrics should align with emerging standards, such as OpenTelemetry metrics, to ensure interoperability. The platform may provide a managed solution, but this is not required for conformance."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - https://documentation.suse.com/cloudnative/rke2/latest/en/reference/ai_conformance.html#_accelerator_performance_metrics
+        - https://documentation.suse.com/suse-ai/1.0/html/AI-deployment/index.html#observability-installing
+        - https://documentation.suse.com/suse-ai/1.0/html/AI-monitoring/index.html#ai-monitoring-gpu
+      notes: "Accelerator metrics are available through SUSE AI."
+    - id: ai_service_metrics
+      description: "Provide a monitoring system capable of discovering and collecting metrics from workloads that expose them in a standard format (e.g. Prometheus exposition format). This ensures easy integration for collecting key metrics from common AI frameworks and servers."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - https://documentation.suse.com/cloudnative/rke2/latest/en/reference/ai_conformance.html#_ai_job_inference_service_metrics
+        - https://documentation.suse.com/suse-ai/1.0/html/AI-deployment/index.html#observability-installing
+        - https://documentation.suse.com/suse-ai/1.0/html/AI-monitoring/index.html
+      notes: "Service metrics are available through SUSE AI."
+  security:
+    - id: secure_accelerator_access
+      description: "Ensure that access to accelerators from within containers is properly isolated and mediated by the Kubernetes resource management framework (device plugin or DRA) and container runtime, preventing unauthorized access or interference between workloads."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - https://documentation.suse.com/cloudnative/rke2/latest/en/reference/ai_conformance.html#_secure_accelerator_access
+        - "file://v1.37/rke2/junit.xml#TestSecureAcceleratorAccess"
+        - "file://v1.37/rke2/results.json#TestSecureAcceleratorAccess"
+        - "file://v1.37/rke2/e2e.log"
+      notes: "Verified via the upstream AI Conformance test suite (TestSecureAcceleratorAccess) against an RKE2 1.37.1 cluster with the NVIDIA GPU Operator (device-plugin mode). All 3 subtests passed: PositiveAccessTest (a Pod requesting 1 GPU sees exactly 1 device), NegativeIsolationTest (a Pod on the same node without a GPU request sees 0 devices), and MultiContainerIsolationTest (within one Pod, only the container that requested the GPU can see it)."
+    - id: workload_sandboxing
+      description: "Provide a mechanism to run workloads in a sandbox that provides strong isolation from the host node kernel. This is crucial for AI agent use cases that may execute untrusted code. The sandbox should isolate the workload's process, memory, filesystem, and network access from the host node and other co-located pods."
+      level: SHOULD
+      status: "Implemented"
+      evidence:
+        - https://documentation.suse.com/cloudnative/rke2/latest/en/reference/ai_conformance.html#_workload_sandboxing
+        - https://documentation.suse.com/cloudnative/rke2/latest/en/add-ons/kata.html
+      notes: "RKE2 supports Kata Containers (Technology Preview) via the kata-deploy Helm chart, running pods in lightweight microVMs instead of sharing the host kernel for hardware-level process/memory isolation. The full guide also covers GPU passthrough and confidential computing (AMD SEV-SNP / Intel TDX) variants for hardware-encrypted memory, beyond the minimum bar for this requirement."
+  operator:
+    - id: robust_controller
+      description: "The platform must prove that at least one complex AI operator with a CRD (e.g., Ray, Kubeflow) can be installed and functions reliably. This includes verifying that the operator's pods run correctly, its webhooks are operational, and its custom resources can be reconciled."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - https://documentation.suse.com/cloudnative/rke2/latest/en/reference/ai_conformance.html#_robust_crd_and_controller_operation
+      notes: ""
