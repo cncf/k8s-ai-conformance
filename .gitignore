@@ -1,0 +1,3 @@
+# Locally built script binaries (go build -tags <tag> scripts/<tag>.go)
+/landscape
+/validate

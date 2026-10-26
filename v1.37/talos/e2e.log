@@ -1,0 +1,317 @@
+=== RUN   TestSecureAcceleratorAccess
+    util_test.go:379: Checking environment: Found ResourceSlice: 00000-gpu.nvidia.com-sparky-hgn7k (Node: sparky, Driver: gpu.nvidia.com, Devices: 1)
+    util_test.go:262: Auto-detected allocation mode: dra
+    util_test.go:229: Secure accelerator access test running with allocation mode: dra (accelerator node: sparky)
+=== RUN   TestSecureAcceleratorAccess/PositiveAccessTest
+I0916 20:20:02.626214 2520691 warnings.go:107] "Warning: would violate PodSecurity \"restricted:latest\": allowPrivilegeEscalation != false (container \"prober\" must set securityContext.allowPrivilegeEscalation=false), unrestricted capabilities (container \"prober\" must set securityContext.capabilities.drop=[\"ALL\"]), runAsNonRoot != true (pod or container \"prober\" must set securityContext.runAsNonRoot=true), seccompProfile (pod or container \"prober\" must set securityContext.seccompProfile.type to \"RuntimeDefault\" or \"Localhost\")"
+    util_test.go:644: Waiting for Pod pos-pod to be running...
+    util_test.go:845: Waiting to see if Pod pos-pod/prober logs contain 'RESULT: ACCELERATOR_COUNT=1'...
+    util_test.go:859: PASS: prober sees exactly 1 accelerator device(s).
+=== RUN   TestSecureAcceleratorAccess/NegativeIsolationTest
+I0916 20:20:37.909778 2520691 warnings.go:107] "Warning: would violate PodSecurity \"restricted:latest\": allowPrivilegeEscalation != false (container \"prober\" must set securityContext.allowPrivilegeEscalation=false), unrestricted capabilities (container \"prober\" must set securityContext.capabilities.drop=[\"ALL\"]), runAsNonRoot != true (pod or container \"prober\" must set securityContext.runAsNonRoot=true), seccompProfile (pod or container \"prober\" must set securityContext.seccompProfile.type to \"RuntimeDefault\" or \"Localhost\")"
+    util_test.go:644: Waiting for Pod neg-pod to be running...
+    util_test.go:845: Waiting to see if Pod neg-pod/prober logs contain 'RESULT: ACCELERATOR_COUNT=0'...
+    util_test.go:859: PASS: prober sees exactly 0 accelerator device(s).
+=== RUN   TestSecureAcceleratorAccess/MultiContainerIsolationTest
+I0916 20:21:13.183611 2520691 warnings.go:107] "Warning: would violate PodSecurity \"restricted:latest\": allowPrivilegeEscalation != false (containers \"authorized\", \"unauthorized\" must set securityContext.allowPrivilegeEscalation=false), unrestricted capabilities (containers \"authorized\", \"unauthorized\" must set securityContext.capabilities.drop=[\"ALL\"]), runAsNonRoot != true (pod or containers \"authorized\", \"unauthorized\" must set securityContext.runAsNonRoot=true), seccompProfile (pod or containers \"authorized\", \"unauthorized\" must set securityContext.seccompProfile.type to \"RuntimeDefault\" or \"Localhost\")"
+    util_test.go:644: Waiting for Pod multi-container-pod to be running...
+    util_test.go:845: Waiting to see if Pod multi-container-pod/authorized logs contain 'RESULT: ACCELERATOR_COUNT=1'...
+    util_test.go:859: PASS: authorized sees exactly 1 accelerator device(s).
+    util_test.go:845: Waiting to see if Pod multi-container-pod/unauthorized logs contain 'RESULT: ACCELERATOR_COUNT=0'...
+    util_test.go:859: PASS: unauthorized sees exactly 0 accelerator device(s).
+=== NAME  TestSecureAcceleratorAccess
+    ai_conformance_test.go:28: Cleaning up namespace ai-conformance-jlrt2...
+--- PASS: TestSecureAcceleratorAccess (112.18s)
+    --- PASS: TestSecureAcceleratorAccess/PositiveAccessTest (35.30s)
+    --- PASS: TestSecureAcceleratorAccess/NegativeIsolationTest (35.27s)
+    --- PASS: TestSecureAcceleratorAccess/MultiContainerIsolationTest (35.31s)
+=== RUN   TestDetectAllocationMode
+=== RUN   TestDetectAllocationMode/auto_prefers_DRA_when_DeviceClass_and_node-backed_slices_exist
+    util_test.go:379: Checking environment: Found ResourceSlice: node1-gpu (Node: node1, Driver: gpu.nvidia.com, Devices: 8)
+    util_test.go:262: Auto-detected allocation mode: dra
+=== RUN   TestDetectAllocationMode/auto_falls_back_to_device_plugin_on_stale_DeviceClass_without_slices
+    util_test.go:265: DRA not usable (no complete current-generation ResourceSlice with allocatable devices found for driver gpu.nvidia.com); trying device plugin...
+    util_test.go:508: Checking environment: Found Ready node node1 with allocatable nvidia.com/gpu: 8
+    util_test.go:273: Auto-detected allocation mode: device-plugin
+=== RUN   TestDetectAllocationMode/auto_falls_back_when_slices_have_no_devices
+    util_test.go:265: DRA not usable (no complete current-generation ResourceSlice with allocatable devices found for driver gpu.nvidia.com); trying device plugin...
+    util_test.go:508: Checking environment: Found Ready node node1 with allocatable nvidia.com/gpu: 8
+    util_test.go:273: Auto-detected allocation mode: device-plugin
+=== RUN   TestDetectAllocationMode/auto_falls_back_when_slices_belong_to_an_unrelated_driver
+    util_test.go:265: DRA not usable (no complete current-generation ResourceSlice with allocatable devices found for driver gpu.nvidia.com); trying device plugin...
+    util_test.go:508: Checking environment: Found Ready node node1 with allocatable nvidia.com/gpu: 8
+    util_test.go:273: Auto-detected allocation mode: device-plugin
+=== RUN   TestDetectAllocationMode/auto_falls_back_on_a_ComputeDomain-only_cluster_without_a_GPU_DeviceClass
+    util_test.go:265: DRA not usable (failed to get DeviceClass gpu.nvidia.com (is the DRA API resource.k8s.io/v1 enabled?): deviceclasses.resource.k8s.io "gpu.nvidia.com" not found); trying device plugin...
+    util_test.go:508: Checking environment: Found Ready node node1 with allocatable nvidia.com/gpu: 8
+    util_test.go:273: Auto-detected allocation mode: device-plugin
+=== RUN   TestDetectAllocationMode/auto_falls_back_when_the_only_slice-backed_node_is_NotReady
+    util_test.go:265: DRA not usable (ResourceSlices for driver gpu.nvidia.com exist, but none is reachable from a Ready, schedulable node); trying device plugin...
+    util_test.go:508: Checking environment: Found Ready node node1 with allocatable nvidia.com/gpu: 8
+    util_test.go:273: Auto-detected allocation mode: device-plugin
+=== RUN   TestDetectAllocationMode/auto_errors_when_neither_mechanism_is_usable
+    util_test.go:265: DRA not usable (failed to get DeviceClass gpu.nvidia.com (is the DRA API resource.k8s.io/v1 enabled?): deviceclasses.resource.k8s.io "gpu.nvidia.com" not found); trying device plugin...
+=== RUN   TestDetectAllocationMode/explicit_dra_succeeds_when_a_Ready_node_backs_the_slices
+    util_test.go:379: Checking environment: Found ResourceSlice: node1-gpu (Node: node1, Driver: gpu.nvidia.com, Devices: 4)
+=== RUN   TestDetectAllocationMode/explicit_dra_fails_without_DeviceClass
+=== RUN   TestDetectAllocationMode/explicit_dra_fails_when_slices_exist_but_their_node_is_NotReady
+=== RUN   TestDetectAllocationMode/explicit_dra_fails_when_the_slice's_node_does_not_exist
+=== RUN   TestDetectAllocationMode/explicit_device-plugin_succeeds_with_Ready_GPU_node
+    util_test.go:508: Checking environment: Found Ready node node1 with allocatable nvidia.com/gpu: 8
+=== RUN   TestDetectAllocationMode/explicit_device-plugin_fails_with_no_capacity
+=== RUN   TestDetectAllocationMode/explicit_device-plugin_ignores_NotReady_nodes
+=== RUN   TestDetectAllocationMode/explicit_device-plugin_ignores_unschedulable_nodes
+=== RUN   TestDetectAllocationMode/explicit_device-plugin_rejects_a_DRA-backed_extended_resource
+    util_test.go:508: Checking environment: Found Ready node node1 with allocatable nvidia.com/gpu: 8
+=== RUN   TestDetectAllocationMode/auto_fallback_rejects_a_DRA-backed_extended_resource
+    util_test.go:265: DRA not usable (no complete current-generation ResourceSlice with allocatable devices found for driver gpu.nvidia.com); trying device plugin...
+    util_test.go:508: Checking environment: Found Ready node node1 with allocatable nvidia.com/gpu: 8
+=== RUN   TestDetectAllocationMode/explicit_dra_resolves_a_nodeSelector_slice_against_a_matching_Ready_node
+    util_test.go:379: Checking environment: Found ResourceSlice: sel-gpu (Node: gpu-node, Driver: gpu.nvidia.com, Devices: 4)
+=== RUN   TestDetectAllocationMode/explicit_dra_fails_when_the_nodeSelector_matches_no_usable_node
+=== RUN   TestDetectAllocationMode/explicit_dra_resolves_an_allNodes_slice_to_a_usable_node
+    util_test.go:379: Checking environment: Found ResourceSlice: all-gpu (Node: node1, Driver: gpu.nvidia.com, Devices: 4)
+=== RUN   TestDetectAllocationMode/explicit_dra_fails_for_an_allNodes_slice_with_no_usable_nodes
+=== RUN   TestDetectAllocationMode/explicit_dra_uses_only_the_highest_pool_generation
+    util_test.go:379: Checking environment: Found ResourceSlice: gen2 (Node: node1, Driver: gpu.nvidia.com, Devices: 8)
+=== RUN   TestDetectAllocationMode/explicit_dra_ignores_devices_only_advertised_by_an_obsolete_pool_generation
+=== RUN   TestDetectAllocationMode/explicit_dra_ignores_an_incomplete_current-generation_pool
+=== RUN   TestDetectAllocationMode/explicit_dra_accepts_a_complete_multi-slice_pool
+    util_test.go:379: Checking environment: Found ResourceSlice: part1 (Node: node1, Driver: gpu.nvidia.com, Devices: 8)
+=== RUN   TestDetectAllocationMode/explicit_dra_fails_when_every_device_is_taint-blocked
+=== RUN   TestDetectAllocationMode/allNodes_slice_prefers_a_node_advertising_the_extended_resource
+    util_test.go:379: Checking environment: Found ResourceSlice: all-gpu (Node: zzz-gpu, Driver: gpu.nvidia.com, Devices: 4)
+=== RUN   TestDetectAllocationMode/explicit_dra_resolves_per-device_node_selection
+    util_test.go:379: Checking environment: Found ResourceSlice: pd-gpu (Node: node1, Driver: gpu.nvidia.com, Devices: 1)
+=== RUN   TestDetectAllocationMode/invalid_mode_value_is_rejected
+--- PASS: TestDetectAllocationMode (0.04s)
+    --- PASS: TestDetectAllocationMode/auto_prefers_DRA_when_DeviceClass_and_node-backed_slices_exist (0.04s)
+    --- PASS: TestDetectAllocationMode/auto_falls_back_to_device_plugin_on_stale_DeviceClass_without_slices (0.00s)
+    --- PASS: TestDetectAllocationMode/auto_falls_back_when_slices_have_no_devices (0.00s)
+    --- PASS: TestDetectAllocationMode/auto_falls_back_when_slices_belong_to_an_unrelated_driver (0.00s)
+    --- PASS: TestDetectAllocationMode/auto_falls_back_on_a_ComputeDomain-only_cluster_without_a_GPU_DeviceClass (0.00s)
+    --- PASS: TestDetectAllocationMode/auto_falls_back_when_the_only_slice-backed_node_is_NotReady (0.00s)
+    --- PASS: TestDetectAllocationMode/auto_errors_when_neither_mechanism_is_usable (0.00s)
+    --- PASS: TestDetectAllocationMode/explicit_dra_succeeds_when_a_Ready_node_backs_the_slices (0.00s)
+    --- PASS: TestDetectAllocationMode/explicit_dra_fails_without_DeviceClass (0.00s)
+    --- PASS: TestDetectAllocationMode/explicit_dra_fails_when_slices_exist_but_their_node_is_NotReady (0.00s)
+    --- PASS: TestDetectAllocationMode/explicit_dra_fails_when_the_slice's_node_does_not_exist (0.00s)
+    --- PASS: TestDetectAllocationMode/explicit_device-plugin_succeeds_with_Ready_GPU_node (0.00s)
+    --- PASS: TestDetectAllocationMode/explicit_device-plugin_fails_with_no_capacity (0.00s)
+    --- PASS: TestDetectAllocationMode/explicit_device-plugin_ignores_NotReady_nodes (0.00s)
+    --- PASS: TestDetectAllocationMode/explicit_device-plugin_ignores_unschedulable_nodes (0.00s)
+    --- PASS: TestDetectAllocationMode/explicit_device-plugin_rejects_a_DRA-backed_extended_resource (0.00s)
+    --- PASS: TestDetectAllocationMode/auto_fallback_rejects_a_DRA-backed_extended_resource (0.00s)
+    --- PASS: TestDetectAllocationMode/explicit_dra_resolves_a_nodeSelector_slice_against_a_matching_Ready_node (0.00s)
+    --- PASS: TestDetectAllocationMode/explicit_dra_fails_when_the_nodeSelector_matches_no_usable_node (0.00s)
+    --- PASS: TestDetectAllocationMode/explicit_dra_resolves_an_allNodes_slice_to_a_usable_node (0.00s)
+    --- PASS: TestDetectAllocationMode/explicit_dra_fails_for_an_allNodes_slice_with_no_usable_nodes (0.00s)
+    --- PASS: TestDetectAllocationMode/explicit_dra_uses_only_the_highest_pool_generation (0.00s)
+    --- PASS: TestDetectAllocationMode/explicit_dra_ignores_devices_only_advertised_by_an_obsolete_pool_generation (0.00s)
+    --- PASS: TestDetectAllocationMode/explicit_dra_ignores_an_incomplete_current-generation_pool (0.00s)
+    --- PASS: TestDetectAllocationMode/explicit_dra_accepts_a_complete_multi-slice_pool (0.00s)
+    --- PASS: TestDetectAllocationMode/explicit_dra_fails_when_every_device_is_taint-blocked (0.00s)
+    --- PASS: TestDetectAllocationMode/allNodes_slice_prefers_a_node_advertising_the_extended_resource (0.00s)
+    --- PASS: TestDetectAllocationMode/explicit_dra_resolves_per-device_node_selection (0.00s)
+    --- PASS: TestDetectAllocationMode/invalid_mode_value_is_rejected (0.00s)
+=== RUN   TestExtendedResourceGuardFailsClosed
+=== RUN   TestExtendedResourceGuardFailsClosed/API-not-served_NotFound_passes_the_guard
+    util_test.go:508: Checking environment: Found Ready node node1 with allocatable nvidia.com/gpu: 8
+=== RUN   TestExtendedResourceGuardFailsClosed/Forbidden_fails_closed
+    util_test.go:508: Checking environment: Found Ready node node1 with allocatable nvidia.com/gpu: 8
+=== RUN   TestExtendedResourceGuardFailsClosed/transient_API_error_fails_closed
+    util_test.go:508: Checking environment: Found Ready node node1 with allocatable nvidia.com/gpu: 8
+--- PASS: TestExtendedResourceGuardFailsClosed (0.00s)
+    --- PASS: TestExtendedResourceGuardFailsClosed/API-not-served_NotFound_passes_the_guard (0.00s)
+    --- PASS: TestExtendedResourceGuardFailsClosed/Forbidden_fails_closed (0.00s)
+    --- PASS: TestExtendedResourceGuardFailsClosed/transient_API_error_fails_closed (0.00s)
+=== RUN   TestLookupAcceleratorConfig
+--- PASS: TestLookupAcceleratorConfig (0.00s)
+=== RUN   TestBuildTestPod
+=== RUN   TestBuildTestPod/dra_grant_wires_the_claim_to_the_first_container_only
+=== RUN   TestBuildTestPod/device-plugin_grant_sets_the_extended_resource_on_the_first_container_only
+=== RUN   TestBuildTestPod/no_grant_leaves_both_containers_without_accelerator_requests
+=== RUN   TestBuildTestPod/nodeName_pinning_is_applied
+=== RUN   TestBuildTestPod/unknown_allocation_mode_is_rejected
+--- PASS: TestBuildTestPod (0.00s)
+    --- PASS: TestBuildTestPod/dra_grant_wires_the_claim_to_the_first_container_only (0.00s)
+    --- PASS: TestBuildTestPod/device-plugin_grant_sets_the_extended_resource_on_the_first_container_only (0.00s)
+    --- PASS: TestBuildTestPod/no_grant_leaves_both_containers_without_accelerator_requests (0.00s)
+    --- PASS: TestBuildTestPod/nodeName_pinning_is_applied (0.00s)
+    --- PASS: TestBuildTestPod/unknown_allocation_mode_is_rejected (0.00s)
+=== RUN   TestWaitForPodsRunning
+=== RUN   TestWaitForPodsRunning/returns_all_running_pods
+=== RUN   TestWaitForPodsRunning/times_out_while_a_pod_is_pending
+=== RUN   TestWaitForPodsRunning/fails_fast_on_a_permanent_API_error
+--- PASS: TestWaitForPodsRunning (0.05s)
+    --- PASS: TestWaitForPodsRunning/returns_all_running_pods (0.00s)
+    --- PASS: TestWaitForPodsRunning/times_out_while_a_pod_is_pending (0.05s)
+    --- PASS: TestWaitForPodsRunning/fails_fast_on_a_permanent_API_error (0.00s)
+=== RUN   TestPodGeneratedClaims
+=== RUN   TestPodGeneratedClaims/prefers_the_live_pod
+=== RUN   TestPodGeneratedClaims/falls_back_to_the_known_pod_when_the_live_pod_is_gone
+=== RUN   TestPodGeneratedClaims/surfaces_non-NotFound_GET_errors_while_still_using_the_known_pod
+=== RUN   TestPodGeneratedClaims/returns_nothing_when_the_pod_is_gone,_nothing_is_known,_and_no_claims_exist
+=== RUN   TestPodGeneratedClaims/scans_owned_claims_when_the_live_pod's_claim_status_is_not_yet_patched
+=== RUN   TestPodGeneratedClaims/finds_an_orphaned_claim_via_owner_reference_when_the_pod_was_never_observed
+=== RUN   TestPodGeneratedClaims/propagates_claim-list_errors_during_the_owner_scan
+--- PASS: TestPodGeneratedClaims (0.00s)
+    --- PASS: TestPodGeneratedClaims/prefers_the_live_pod (0.00s)
+    --- PASS: TestPodGeneratedClaims/falls_back_to_the_known_pod_when_the_live_pod_is_gone (0.00s)
+    --- PASS: TestPodGeneratedClaims/surfaces_non-NotFound_GET_errors_while_still_using_the_known_pod (0.00s)
+    --- PASS: TestPodGeneratedClaims/returns_nothing_when_the_pod_is_gone,_nothing_is_known,_and_no_claims_exist (0.00s)
+    --- PASS: TestPodGeneratedClaims/scans_owned_claims_when_the_live_pod's_claim_status_is_not_yet_patched (0.00s)
+    --- PASS: TestPodGeneratedClaims/finds_an_orphaned_claim_via_owner_reference_when_the_pod_was_never_observed (0.00s)
+    --- PASS: TestPodGeneratedClaims/propagates_claim-list_errors_during_the_owner_scan (0.00s)
+=== RUN   TestDeleteAndAwaitRelease
+=== RUN   TestDeleteAndAwaitRelease/waits_for_pod_deletion_and_released_claim
+=== RUN   TestDeleteAndAwaitRelease/processes_claims_even_when_the_pod_is_already_gone
+=== RUN   TestDeleteAndAwaitRelease/claim_already_garbage-collected_is_fine
+=== RUN   TestDeleteAndAwaitRelease/post-deletion_rescan_finds_a_claim_created_after_the_pre-delete_capture
+=== RUN   TestDeleteAndAwaitRelease/propagates_pod_delete_API_errors
+=== RUN   TestDeleteAndAwaitRelease/retries_transient_pod_delete_API_errors
+--- PASS: TestDeleteAndAwaitRelease (2.40s)
+    --- PASS: TestDeleteAndAwaitRelease/waits_for_pod_deletion_and_released_claim (0.00s)
+    --- PASS: TestDeleteAndAwaitRelease/processes_claims_even_when_the_pod_is_already_gone (0.20s)
+    --- PASS: TestDeleteAndAwaitRelease/claim_already_garbage-collected_is_fine (0.00s)
+    --- PASS: TestDeleteAndAwaitRelease/post-deletion_rescan_finds_a_claim_created_after_the_pre-delete_capture (0.20s)
+    --- PASS: TestDeleteAndAwaitRelease/propagates_pod_delete_API_errors (0.00s)
+    --- PASS: TestDeleteAndAwaitRelease/retries_transient_pod_delete_API_errors (2.00s)
+=== RUN   TestIsRetryableAPIError
+--- PASS: TestIsRetryableAPIError (0.00s)
+=== RUN   TestDeletePodAndWait
+--- PASS: TestDeletePodAndWait (0.00s)
+=== RUN   TestAcceleratorClusterAutoscaling
+    cluster_autoscaling_test.go:69: cluster autoscaling test is not configured; if the platform has no cluster autoscaler, mark cluster_autoscaling N/A, otherwise set -autoscaler-node-pool-label=<key>=<value>
+--- SKIP: TestAcceleratorClusterAutoscaling (0.00s)
+=== RUN   TestParseNodePoolLabel
+=== RUN   TestParseNodePoolLabel/simple_label
+=== RUN   TestParseNodePoolLabel/qualified_label
+=== RUN   TestParseNodePoolLabel/empty
+=== RUN   TestParseNodePoolLabel/missing_equals
+=== RUN   TestParseNodePoolLabel/multiple_equals
+=== RUN   TestParseNodePoolLabel/empty_key
+=== RUN   TestParseNodePoolLabel/empty_value
+=== RUN   TestParseNodePoolLabel/invalid_key
+=== RUN   TestParseNodePoolLabel/invalid_value
+--- PASS: TestParseNodePoolLabel (0.00s)
+    --- PASS: TestParseNodePoolLabel/simple_label (0.00s)
+    --- PASS: TestParseNodePoolLabel/qualified_label (0.00s)
+    --- PASS: TestParseNodePoolLabel/empty (0.00s)
+    --- PASS: TestParseNodePoolLabel/missing_equals (0.00s)
+    --- PASS: TestParseNodePoolLabel/multiple_equals (0.00s)
+    --- PASS: TestParseNodePoolLabel/empty_key (0.00s)
+    --- PASS: TestParseNodePoolLabel/empty_value (0.00s)
+    --- PASS: TestParseNodePoolLabel/invalid_key (0.00s)
+    --- PASS: TestParseNodePoolLabel/invalid_value (0.00s)
+=== RUN   TestValidateAutoscalerDurations
+=== RUN   TestValidateAutoscalerDurations/zero_pending_timeout
+=== RUN   TestValidateAutoscalerDurations/zero_scale-up_timeout
+=== RUN   TestValidateAutoscalerDurations/zero_scale-down_timeout
+=== RUN   TestValidateAutoscalerDurations/negative_stability_window
+=== RUN   TestValidateAutoscalerDurations/stability_window_equals_scale-down_timeout
+--- PASS: TestValidateAutoscalerDurations (0.00s)
+    --- PASS: TestValidateAutoscalerDurations/zero_pending_timeout (0.00s)
+    --- PASS: TestValidateAutoscalerDurations/zero_scale-up_timeout (0.00s)
+    --- PASS: TestValidateAutoscalerDurations/zero_scale-down_timeout (0.00s)
+    --- PASS: TestValidateAutoscalerDurations/negative_stability_window (0.00s)
+    --- PASS: TestValidateAutoscalerDurations/stability_window_equals_scale-down_timeout (0.00s)
+=== RUN   TestAutoscalerPodDeadlineSeconds
+--- PASS: TestAutoscalerPodDeadlineSeconds (0.00s)
+=== RUN   TestBuildAutoscalingPod
+=== RUN   TestBuildAutoscalingPod/device_plugin
+=== RUN   TestBuildAutoscalingPod/DRA
+=== RUN   TestBuildAutoscalingPod/trigger_omits_anti-affinity
+--- PASS: TestBuildAutoscalingPod (0.00s)
+    --- PASS: TestBuildAutoscalingPod/device_plugin (0.00s)
+    --- PASS: TestBuildAutoscalingPod/DRA (0.00s)
+    --- PASS: TestBuildAutoscalingPod/trigger_omits_anti-affinity (0.00s)
+=== RUN   TestReadyPoolNodes
+--- PASS: TestReadyPoolNodes (0.00s)
+=== RUN   TestPodUnschedulable
+=== RUN   TestPodUnschedulable/no_conditions
+=== RUN   TestPodUnschedulable/unschedulable
+=== RUN   TestPodUnschedulable/scheduled
+=== RUN   TestPodUnschedulable/different_reason
+--- PASS: TestPodUnschedulable (0.00s)
+    --- PASS: TestPodUnschedulable/no_conditions (0.00s)
+    --- PASS: TestPodUnschedulable/unschedulable (0.00s)
+    --- PASS: TestPodUnschedulable/scheduled (0.00s)
+    --- PASS: TestPodUnschedulable/different_reason (0.00s)
+=== RUN   TestVerifyBaselinePlacement
+=== RUN   TestVerifyBaselinePlacement/covers_every_baseline_node
+=== RUN   TestVerifyBaselinePlacement/rejects_duplicate_placement
+--- PASS: TestVerifyBaselinePlacement (0.00s)
+    --- PASS: TestVerifyBaselinePlacement/covers_every_baseline_node (0.00s)
+    --- PASS: TestVerifyBaselinePlacement/rejects_duplicate_placement (0.00s)
+=== RUN   TestSameNodeIdentitySet
+--- PASS: TestSameNodeIdentitySet (0.00s)
+=== RUN   TestVerifyPoolIsIdle
+=== RUN   TestVerifyPoolIsIdle/filters_terminal_Pods_at_the_API_server
+=== RUN   TestVerifyPoolIsIdle/ignores_test_and_DaemonSet_Pods
+=== RUN   TestVerifyPoolIsIdle/rejects_a_foreign_scheduled_Pod
+=== RUN   TestVerifyPoolIsIdle/rejects_foreign_pending_accelerator_demand
+=== RUN   TestVerifyPoolIsIdle/rejects_other_pending_target-pool_demand
+=== RUN   TestVerifyPoolIsIdle/rejects_foreign_DRA_claims_outside_the_pool
+=== RUN   TestVerifyPoolIsIdle/rejects_allocated_ResourceClaims_outside_the_test_namespace
+--- PASS: TestVerifyPoolIsIdle (0.00s)
+    --- PASS: TestVerifyPoolIsIdle/filters_terminal_Pods_at_the_API_server (0.00s)
+    --- PASS: TestVerifyPoolIsIdle/ignores_test_and_DaemonSet_Pods (0.00s)
+    --- PASS: TestVerifyPoolIsIdle/rejects_a_foreign_scheduled_Pod (0.00s)
+    --- PASS: TestVerifyPoolIsIdle/rejects_foreign_pending_accelerator_demand (0.00s)
+    --- PASS: TestVerifyPoolIsIdle/rejects_other_pending_target-pool_demand (0.00s)
+    --- PASS: TestVerifyPoolIsIdle/rejects_foreign_DRA_claims_outside_the_pool (0.00s)
+    --- PASS: TestVerifyPoolIsIdle/rejects_allocated_ResourceClaims_outside_the_test_namespace (0.00s)
+=== RUN   TestWaitForScaleDown
+=== RUN   TestWaitForScaleDown/accepts_a_retained_NotReady_Node_object
+=== RUN   TestWaitForScaleDown/rejects_a_Ready_scaled_Node_even_when_cordoned
+=== RUN   TestWaitForScaleDown/rejects_baseline_replacement
+=== RUN   TestWaitForScaleDown/rejects_a_cordoned_baseline_node
+=== RUN   TestWaitForScaleDown/rejects_an_additional_Ready_overshoot_node
+--- PASS: TestWaitForScaleDown (0.20s)
+    --- PASS: TestWaitForScaleDown/accepts_a_retained_NotReady_Node_object (0.00s)
+    --- PASS: TestWaitForScaleDown/rejects_a_Ready_scaled_Node_even_when_cordoned (0.05s)
+    --- PASS: TestWaitForScaleDown/rejects_baseline_replacement (0.05s)
+    --- PASS: TestWaitForScaleDown/rejects_a_cordoned_baseline_node (0.05s)
+    --- PASS: TestWaitForScaleDown/rejects_an_additional_Ready_overshoot_node (0.05s)
+=== RUN   TestVerifyAutoscalerPoolCapacityRejectsDRABackedExtendedResource
+--- PASS: TestVerifyAutoscalerPoolCapacityRejectsDRABackedExtendedResource (0.00s)
+=== RUN   TestCreateBaselinePDB
+--- PASS: TestCreateBaselinePDB (0.00s)
+=== RUN   TestAcceleratorProbeCommand
+=== RUN   TestAcceleratorProbeCommand/counts_matching_device_nodes
+=== RUN   TestAcceleratorProbeCommand/no_matching_device_nodes
+--- PASS: TestAcceleratorProbeCommand (0.00s)
+    --- PASS: TestAcceleratorProbeCommand/counts_matching_device_nodes (0.00s)
+    --- PASS: TestAcceleratorProbeCommand/no_matching_device_nodes (0.00s)
+=== RUN   TestLogsContainExactLine
+=== RUN   TestLogsContainExactLine/exact_count
+=== RUN   TestLogsContainExactLine/surrounding_whitespace
+=== RUN   TestLogsContainExactLine/over-allocation_is_not_a_substring_match
+=== RUN   TestLogsContainExactLine/different_count
+=== RUN   TestLogsContainExactLine/missing_result
+--- PASS: TestLogsContainExactLine (0.00s)
+    --- PASS: TestLogsContainExactLine/exact_count (0.00s)
+    --- PASS: TestLogsContainExactLine/surrounding_whitespace (0.00s)
+    --- PASS: TestLogsContainExactLine/over-allocation_is_not_a_substring_match (0.00s)
+    --- PASS: TestLogsContainExactLine/different_count (0.00s)
+    --- PASS: TestLogsContainExactLine/missing_result (0.00s)
+=== RUN   TestGangScheduling
+=== RUN   TestGangScheduling/PositiveGangScheduling
+    gang_scheduling_test.go:72: Creating positive test job pos-job...
+I0916 20:21:57.286771 2520691 warnings.go:107] "Warning: would violate PodSecurity \"restricted:latest\": allowPrivilegeEscalation != false (container \"test-container\" must set securityContext.allowPrivilegeEscalation=false), unrestricted capabilities (container \"test-container\" must set securityContext.capabilities.drop=[\"ALL\"]), runAsNonRoot != true (pod or container \"test-container\" must set securityContext.runAsNonRoot=true), seccompProfile (pod or container \"test-container\" must set securityContext.seccompProfile.type to \"RuntimeDefault\" or \"Localhost\")"
+    gang_scheduling_test.go:146: Waiting for positive job pos-job to complete...
+    gang_scheduling_test.go:168: Verifying scheduling evidence for completed job pos-job...
+    gang_scheduling_test.go:203:   Pod pos-job-b89gt: schedulerName=default-scheduler, nodeName=sparky, phase=Succeeded
+    gang_scheduling_test.go:203:   Pod pos-job-n4dkh: schedulerName=default-scheduler, nodeName=sparky, phase=Succeeded
+    gang_scheduling_test.go:207: Positive job pos-job completed with 2 pods verified
+=== RUN   TestGangScheduling/NegativeGangScheduling
+    gang_scheduling_test.go:89: Creating negative test job neg-job...
+I0916 20:22:07.459206 2520691 warnings.go:107] "Warning: would violate PodSecurity \"restricted:latest\": allowPrivilegeEscalation != false (container \"test-container\" must set securityContext.allowPrivilegeEscalation=false), unrestricted capabilities (container \"test-container\" must set securityContext.capabilities.drop=[\"ALL\"]), runAsNonRoot != true (pod or container \"test-container\" must set securityContext.runAsNonRoot=true), seccompProfile (pod or container \"test-container\" must set securityContext.seccompProfile.type to \"RuntimeDefault\" or \"Localhost\")"
+    gang_scheduling_test.go:213: Verifying negative job neg-job remains suspended or pending without partial pods for 30s...
+    gang_scheduling_test.go:245: Negative job neg-job successfully remained suspended or pending with 0 bound pods throughout the 30s verification window.
+--- PASS: TestGangScheduling (40.27s)
+    --- PASS: TestGangScheduling/PositiveGangScheduling (10.19s)
+    --- PASS: TestGangScheduling/NegativeGangScheduling (30.08s)
+PASS
+ok  	github.com/kubernetes-sigs/ai-conformance/test	155.154s

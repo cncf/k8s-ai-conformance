@@ -1,0 +1,135 @@
+# Kubernetes AI Conformance Checklist
+# Notes: This checklist is based on the Kubernetes AI Conformance document.
+# Participants should fill in the 'status', 'evidence', and 'notes' fields for each requirement.
+
+metadata:
+  kubernetesVersion: v1.37
+  platformName: "Talos Linux"
+  platformVersion: "1.14.1"
+  vendorName: "Sidero Labs"
+  websiteUrl: "https://talos.dev"
+  repoUrl: "https://github.com/siderolabs/talos"
+  documentationUrl: "https://docs.siderolabs.com/talos/latest/overview/what-is-talos"
+  productLogoUrl: "https://talos.dev/img/talos/talos-hz-color-black.svg"
+  description: "Talos Linux is a single purpose Linux distribution for running Kubernetes with API management and secure by default configuration."
+  contactEmailAddress: "justin.garrison@siderolabs.com"
+  k8sConformanceUrl: "https://github.com/cncf/k8s-conformance/tree/master/v1.37/talos"
+
+spec:
+  accelerators:
+    - id: driver_runtime_management
+      description: "Provide a verifiable mechanism for ensuring that compatible accelerator drivers and corresponding container runtime configurations are correctly installed and maintained on nodes with accelerators."
+      level: SHOULD
+      status: "Implemented"
+      evidence:
+        - "https://docs.siderolabs.com/kubernetes-guides/advanced-guides/dynamic-resource-allocation"
+        - "https://github.com/siderolabs/extensions"
+      notes: "Talos ships signed system extensions (nonfree-kmod-nvidia-production, nvidia-container-toolkit-production) that pin the NVIDIA kernel driver and container runtime to a specific version per Talos release. Extensions are declared in the machine config; drift is impossible because Talos is immutable and configuration is enforced by Omni or the Talos machined controller."
+    - id: gpu_sharing
+      description: "For accelerators that support static GPU sharing, provide well-defined mechanisms for at least one GPU sharing strategy to improve utilization."
+      level: SHOULD
+      status: "Implemented"
+      evidence:
+        - "https://docs.nvidia.com/datacenter/cloud-native/kubernetes/latest/index.html#time-slicing"
+      notes: "Talos runs the standard NVIDIA GPU Operator / nvidia-device-plugin, which supports time-slicing today and MIG partitioning on supported hardware. DRA-based fractional sharing works on Talos v1.14+ once the upstream DRA-driver-nvidia-gpu adds partitionable-device support."
+    - id: virtualized_accelerator
+      description: "For accelerators that support virtualized accelerator technologies (e.g. vGPU), provide well-defined mechanisms for these to be exposed and managed."
+      level: SHOULD
+      status: ""
+      evidence: []
+      notes: ""
+  networking:
+    - id: ai_inference
+      description: "Support the Kubernetes Gateway API with an implementation for advanced traffic management for inference services."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "https://docs.siderolabs.com/kubernetes-guides/advanced-guides/deploy-traefik"
+        - "https://docs.siderolabs.com/kubernetes-guides/cni/deploying-cilium#without-kube-proxy"
+      notes: "Kubernetes running on Talos Linux and Omni support a variety of Gateway API controllers depending on where you run clusters. For on-prem clusters solutions such as Traefik and Cilium are compatible."
+    - id: advanced_inference_ingress
+      description: "Support an implementation of the Gateway API Inference Extension (GAIE), which can route requests to models hosted on Kubernetes."
+      level: SHOULD
+      status: ""
+      evidence: []
+      notes: ""
+    - id: high_performance_networking
+      description: "Provide well-defined mechanisms for specialized network resources to be managed and exposed. Platforms should use DRA as the mechanism to manage and expose these specialized network resources (e.g., DRANET)."
+      level: SHOULD
+      status: "Implemented"
+      evidence:
+        - "https://github.com/google/dranet"
+      notes: "DRANET runs on Talos v1.14 without modification. Talos exposes SR-IOV and RDMA capable NICs (e.g. ConnectX-7) via kernel modules loaded via machine config; DRA-managed network claim allocation is validated on a 3-node DGX Spark GB10 cluster."
+    - id: disaggregated_inference
+      description: "Support the deployment and operation of disaggregated inference architectures (e.g., vLLM, SGLang, llm-d, or Dynamo)."
+      level: SHOULD
+      status: "Implemented"
+      evidence:
+        - "https://github.com/siderolabs/talos/discussions/11072"
+      notes: "vLLM disaggregated serving (prefill/decode split) has been deployed on Talos-managed DGX Spark GB10 clusters using LeaderWorkerSet + DRA-scheduled GPUs."
+  schedulingOrchestration:
+    - id: gang_scheduling
+      description: "The platform must allow for the installation and successful operation of at least one gang scheduling solution."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "https://docs.siderolabs.com/kubernetes-guides/advanced-guides/kueue"
+        - "junit.xml"
+        - "e2e.log"
+        - "results.json"
+      notes: "Verified end-to-end by the upstream AI Conformance test suite (TestGangScheduling) using Kueue v0.19.4 with a LocalQueue for admission. Positive and negative cases both pass."
+    - id: cluster_autoscaling
+      description: "If the platform provides a cluster autoscaler or an equivalent mechanism, it must be able to scale up/down node groups containing specific accelerator types based on pending pods requesting those accelerators."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "https://github.com/kubernetes/autoscaler/tree/master/cluster-autoscaler"
+      notes: "Talos Linux is deployable on cloud and virtualization platforms that support the upstream Kubernetes cluster-autoscaler (AWS, GCP, Azure, Hetzner, Proxmox, etc.). For those environments the standard cluster-autoscaler component runs unmodified against Talos-managed nodes and reacts to Pending pods that request accelerator resources. Bare-metal deployments do not exercise this path; there the requirement is satisfied by the ability to scale worker MachineSets via Omni's declarative cluster template. On-premises operators can use Cluster API + Talos providers for equivalent behavior."
+    - id: pod_autoscaling
+      description: "If the platform supports the HorizontalPodAutoscaler, it must function correctly for pods utilizing accelerators."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "https://docs.siderolabs.com/kubernetes-guides/advanced-guides/hpa"
+      notes: "Talos Linux supports pod autoscalers including vanilla HPA. HPA can be configured to scale based on custom metrics, such as those exposed by NVIDIA DCGM exporter or Neuron Monitor."
+  observability:
+    - id: accelerator_metrics
+      description: "For supported accelerator types, the platform must allow for the installation and successful operation of at least one accelerator metrics solution."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "https://github.com/NVIDIA/dcgm-exporter"
+      notes: "NVIDIA DCGM Exporter runs unmodified on Talos-managed clusters using the nvidia-container-toolkit-production system extension and RuntimeClass nvidia. Fine-grained per-GPU metrics (utilization, memory, temperature, power draw, NVLink) are exposed in Prometheus format and scrapable by any standards-based collector."
+    - id: ai_service_metrics
+      description: "Provide a monitoring system capable of discovering and collecting metrics from workloads that expose them in a standard format (e.g. Prometheus exposition format)."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "https://prometheus-operator.dev/"
+      notes: "The upstream Prometheus Operator, kube-prometheus-stack, and OpenTelemetry Collector all install and run on Talos-managed clusters without modification, providing standards-compliant metrics discovery and scraping for AI workloads (vLLM, Kueue, DCGM, etc.)."
+  security:
+    - id: secure_accelerator_access
+      description: "Ensure that access to accelerators from within containers is properly isolated and mediated by the Kubernetes resource management framework."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "secure_accelerator_access.md"
+        - "junit.xml"
+        - "e2e.log"
+        - "results.json"
+      notes: "Verified by the manual attestation document and by the upstream AI Conformance test suite (TestSecureAcceleratorAccess) in DRA allocation mode against an NVIDIA GB10 GPU. Both positive-access and negative-isolation sub-tests pass."
+    - id: workload_sandboxing
+      description: "Provide a mechanism to run workloads in a sandbox that provides strong isolation from the host node kernel."
+      level: SHOULD
+      status: "Implemented"
+      evidence:
+        - "https://github.com/siderolabs/extensions/tree/main/container-runtime/kata-containers"
+      notes: "Talos provides a signed kata-containers system extension. Enabling it in the machine config installs the Kata runtime and lets pods opt into VM-based sandboxing via runtimeClassName: kata."
+  operator:
+    - id: robust_controller
+      description: "The platform must prove that at least one complex AI operator with a CRD (e.g., Ray, Kubeflow) can be installed and functions reliably."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "https://docs.siderolabs.com/kubernetes-guides/advanced-guides/kuberay"
+      notes: "Talos Linux uses a vanilla, conformant Kubernetes cluster. Frameworks such as Ray and Kubeflow have been tested and are used on clusters implemented on Talos Linux and Omni."

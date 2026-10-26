@@ -4,12 +4,16 @@ package main
 
 import (
 	"errors"
+	"bufio"
+	"encoding/json"
+	"encoding/xml"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -142,6 +146,419 @@ var metadataFields = map[string]bool{
 	"k8sConformanceUrl":   true, // Required: URL to k8s-conformance submission
 }
 
+// autoTestedRequirements maps requirement IDs that are covered by the upstream
+// AI Conformance test suite (kubernetes-sigs/ai-conformance/test) to the Go
+// test function that verifies them. Starting with v1.37, submissions are
+// recommended to include test artifacts for these requirements.
+var autoTestedRequirements = map[string]string{
+	"secure_accelerator_access": "TestSecureAcceleratorAccess",
+	"gang_scheduling":           "TestGangScheduling",
+	"cluster_autoscaling":       "TestAcceleratorClusterAutoscaling",
+}
+
+// conditionalMustRequirements lists the MUST requirements whose condition may
+// not apply to a platform, and which may therefore be marked N/A with a
+// justification in notes. Every other MUST requirement has to be Implemented.
+var conditionalMustRequirements = map[string]bool{
+	"cluster_autoscaling": true,
+}
+
+// hybridVerificationMinMinor is the first Kubernetes 1.x minor version for
+// which hybrid verification (automated test artifacts) applies.
+const hybridVerificationMinMinor = 37
+
+// supportsHybridVerification reports whether the given schema version
+// (e.g. "1.37") is in scope for the hybrid verification recommendations.
+func supportsHybridVerification(schemaVersion string) bool {
+	parts := strings.SplitN(schemaVersion, ".", 2)
+	if len(parts) != 2 {
+		return false
+	}
+	major, err1 := strconv.Atoi(parts[0])
+	minor, err2 := strconv.Atoi(parts[1])
+	if err1 != nil || err2 != nil {
+		return false
+	}
+	return major > 1 || (major == 1 && minor >= hybridVerificationMinMinor)
+}
+
+// evidenceRef is a local evidence reference resolved to an on-disk path.
+type evidenceRef struct {
+	Path     string // path on disk, inside the product directory
+	Fragment string // optional "#TestName" fragment, without the "#"
+}
+
+// productDirPrefix matches a repo-root style "vX.Y/<product>/" path prefix.
+var productDirPrefix = regexp.MustCompile(`^v\d+\.\d+/[^/]+/`)
+
+// resolveEvidencePath resolves a local evidence link (a bare relative path or
+// a file:// URL, optionally with a #fragment) to a file inside productDir.
+//
+// Paths are resolved relative to the product directory. As a convenience for
+// links written repo-root style (file://v1.37/$dir/junit.xml), a leading
+// "vX.Y/$dir/" prefix matching the product's own directory is stripped.
+// References that escape the product directory are rejected.
+func resolveEvidencePath(productDir, link string) (evidenceRef, error) {
+	raw := strings.TrimSpace(link)
+	raw = strings.TrimPrefix(raw, "file://")
+
+	fragment := ""
+	if i := strings.Index(raw, "#"); i >= 0 {
+		fragment = raw[i+1:]
+		raw = raw[:i]
+	}
+	raw = strings.TrimPrefix(strings.TrimSpace(raw), "/")
+	if raw == "" {
+		return evidenceRef{}, fmt.Errorf("empty file path")
+	}
+
+	// Strip the product's own "vX.Y/$dir/" prefix if present; any other
+	// product directory reference is an error rather than a confusing
+	// "not found at vX.Y/own/vX.Y/other/..." message.
+	cleanDir := filepath.Clean(productDir)
+	ownPrefix := filepath.ToSlash(filepath.Join(filepath.Base(filepath.Dir(cleanDir)), filepath.Base(cleanDir))) + "/"
+	if strings.HasPrefix(raw, ownPrefix) {
+		raw = strings.TrimPrefix(raw, ownPrefix)
+	} else if productDirPrefix.MatchString(raw) {
+		return evidenceRef{}, fmt.Errorf("path %q references a different product directory; evidence must live in %s", link, productDir)
+	}
+
+	full := filepath.Join(cleanDir, filepath.FromSlash(raw))
+	rel, err := filepath.Rel(cleanDir, full)
+	if err != nil || rel == "." || rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
+		return evidenceRef{}, fmt.Errorf("path %q escapes the product directory %s", link, productDir)
+	}
+
+	return evidenceRef{Path: full, Fragment: fragment}, nil
+}
+
+// testOutcome is the result of a single test as recorded in a test artifact.
+type testOutcome int
+
+const (
+	outcomeUnknown testOutcome = iota
+	outcomePass
+	outcomeFail
+	outcomeSkip
+)
+
+func (o testOutcome) String() string {
+	switch o {
+	case outcomePass:
+		return "passed"
+	case outcomeFail:
+		return "failed"
+	case outcomeSkip:
+		return "skipped"
+	}
+	return "not found"
+}
+
+// artifactReport summarizes the tests recorded in a junit.xml, results.json
+// or e2e.log artifact.
+type artifactReport struct {
+	Tests    map[string]testOutcome
+	Failures []string // names of failed tests, or package-level failures
+}
+
+func newArtifactReport() *artifactReport {
+	return &artifactReport{Tests: make(map[string]testOutcome)}
+}
+
+func (r *artifactReport) record(name string, outcome testOutcome) {
+	// A later fail/skip overrides an earlier pass for the same name (e.g.
+	// multiple package runs); never downgrade a fail.
+	if prev, ok := r.Tests[name]; ok && prev == outcomeFail {
+		return
+	}
+	r.Tests[name] = outcome
+	if outcome == outcomeFail {
+		r.Failures = append(r.Failures, name)
+	}
+}
+
+// outcomeFor returns the outcome of the named test. If there is no exact
+// match, subtests (name/...) are aggregated: any fail -> fail, all skip ->
+// skip, otherwise pass.
+func (r *artifactReport) outcomeFor(name string) testOutcome {
+	if o, ok := r.Tests[name]; ok {
+		return o
+	}
+	prefix := name + "/"
+	found, anyFail, allSkip := false, false, true
+	for n, o := range r.Tests {
+		if !strings.HasPrefix(n, prefix) {
+			continue
+		}
+		found = true
+		if o == outcomeFail {
+			anyFail = true
+		}
+		if o != outcomeSkip {
+			allSkip = false
+		}
+	}
+	switch {
+	case !found:
+		return outcomeUnknown
+	case anyFail:
+		return outcomeFail
+	case allSkip:
+		return outcomeSkip
+	}
+	return outcomePass
+}
+
+// artifactKind classifies a test artifact by its canonical filename. Only the
+// names documented in instructions.md are recognized, so unrelated evidence
+// files (install.log, cluster-config.json, ...) are not parsed as test output.
+type artifactKind int
+
+const (
+	artifactNone artifactKind = iota
+	artifactJUnit
+	artifactGoTestJSON
+	artifactE2ELog
+)
+
+var canonicalArtifacts = map[string]artifactKind{
+	"junit.xml":    artifactJUnit,
+	"results.json": artifactGoTestJSON,
+	"e2e.log":      artifactE2ELog,
+}
+
+func classifyArtifact(path string) artifactKind {
+	return canonicalArtifacts[strings.ToLower(filepath.Base(path))]
+}
+
+// parseArtifact reads and parses a test artifact according to its kind.
+func parseArtifact(path string, kind artifactKind) (*artifactReport, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+
+	switch kind {
+	case artifactJUnit:
+		return parseJUnit(f)
+	case artifactGoTestJSON:
+		return parseGoTestJSON(f)
+	case artifactE2ELog:
+		return parseE2ELog(f)
+	}
+	return nil, fmt.Errorf("unsupported artifact type for %s", path)
+}
+
+// junitNode is a permissive representation of JUnit XML that handles both a
+// <testsuites> root and a bare <testsuite> root, as emitted by gotestsum and
+// go-junit-report.
+type junitNode struct {
+	Suites    []junitNode     `xml:"testsuite"`
+	Testcases []junitTestcase `xml:"testcase"`
+}
+
+type junitTestcase struct {
+	Name    string    `xml:"name,attr"`
+	Failure *struct{} `xml:"failure"`
+	Error   *struct{} `xml:"error"`
+	Skipped *struct{} `xml:"skipped"`
+}
+
+func parseJUnit(r io.Reader) (*artifactReport, error) {
+	var root junitNode
+	if err := xml.NewDecoder(r).Decode(&root); err != nil {
+		return nil, fmt.Errorf("parsing JUnit XML: %v", err)
+	}
+	report := newArtifactReport()
+	var walk func(n junitNode)
+	walk = func(n junitNode) {
+		for _, tc := range n.Testcases {
+			switch {
+			case tc.Failure != nil || tc.Error != nil:
+				report.record(tc.Name, outcomeFail)
+			case tc.Skipped != nil:
+				report.record(tc.Name, outcomeSkip)
+			default:
+				report.record(tc.Name, outcomePass)
+			}
+		}
+		for _, s := range n.Suites {
+			walk(s)
+		}
+	}
+	walk(root)
+	if len(report.Tests) == 0 {
+		return nil, fmt.Errorf("parsing JUnit XML: no <testcase> elements found")
+	}
+	return report, nil
+}
+
+// goTestEvent is one line of `go test -json` output.
+type goTestEvent struct {
+	Action  string `json:"Action"`
+	Package string `json:"Package"`
+	Test    string `json:"Test"`
+}
+
+func parseGoTestJSON(r io.Reader) (*artifactReport, error) {
+	report := newArtifactReport()
+	var packageFailures []string
+	sc := bufio.NewScanner(r)
+	sc.Buffer(make([]byte, 0, 1024*1024), 16*1024*1024)
+	lineNo := 0
+	for sc.Scan() {
+		lineNo++
+		line := strings.TrimSpace(sc.Text())
+		if line == "" {
+			continue
+		}
+		var ev goTestEvent
+		if err := json.Unmarshal([]byte(line), &ev); err != nil {
+			return nil, fmt.Errorf("parsing go test JSON at line %d: %v", lineNo, err)
+		}
+		var outcome testOutcome
+		switch ev.Action {
+		case "pass":
+			outcome = outcomePass
+		case "fail":
+			outcome = outcomeFail
+		case "skip":
+			outcome = outcomeSkip
+		default:
+			continue
+		}
+		if ev.Test == "" {
+			if outcome == outcomeFail {
+				packageFailures = append(packageFailures, ev.Package)
+			}
+			continue
+		}
+		report.record(ev.Test, outcome)
+	}
+	if err := sc.Err(); err != nil {
+		return nil, fmt.Errorf("reading go test JSON: %v", err)
+	}
+	// A package-level failure without any test-level failure indicates a
+	// build failure or panic; surface it explicitly.
+	if len(report.Failures) == 0 {
+		for _, pkg := range packageFailures {
+			report.Failures = append(report.Failures, "package "+pkg)
+		}
+	}
+	if len(report.Tests) == 0 && len(report.Failures) == 0 {
+		return nil, fmt.Errorf("parsing go test JSON: no test events found")
+	}
+	return report, nil
+}
+
+// e2eResultLine matches `go test -v` result lines such as
+// "--- PASS: TestGangScheduling (12.34s)" (indented for subtests).
+var e2eResultLine = regexp.MustCompile(`^\s*--- (PASS|FAIL|SKIP): (\S+)`)
+
+func parseE2ELog(r io.Reader) (*artifactReport, error) {
+	report := newArtifactReport()
+	sc := bufio.NewScanner(r)
+	sc.Buffer(make([]byte, 0, 1024*1024), 16*1024*1024)
+	for sc.Scan() {
+		m := e2eResultLine.FindStringSubmatch(sc.Text())
+		if m == nil {
+			continue
+		}
+		switch m[1] {
+		case "PASS":
+			report.record(m[2], outcomePass)
+		case "FAIL":
+			report.record(m[2], outcomeFail)
+		case "SKIP":
+			report.record(m[2], outcomeSkip)
+		}
+	}
+	if err := sc.Err(); err != nil {
+		return nil, fmt.Errorf("reading e2e log: %v", err)
+	}
+	if len(report.Tests) == 0 {
+		return nil, fmt.Errorf("parsing e2e log: no '--- PASS/FAIL/SKIP:' result lines found")
+	}
+	return report, nil
+}
+
+// checkRequirementStatus validates a requirement's status against its level.
+// A MUST requirement has to be Implemented. The conditional MUST requirements
+// in conditionalMustRequirements may instead be N/A; that is flagged as a
+// warning so the reviewer checks the justification. N/A always needs notes.
+func checkRequirementStatus(id, level, status, notes string) (errs, warnings []string) {
+	if !validStatuses[status] {
+		errs = append(errs, fmt.Sprintf("Invalid status '%s' for '%s'. Must be one of %v", status, id, keys(validStatuses)))
+	}
+	if level == "MUST" {
+		switch {
+		case status == "Implemented":
+		case status == "N/A" && conditionalMustRequirements[id]:
+			warnings = append(warnings, fmt.Sprintf("Requirement '%s' is MUST level and marked N/A; review the justification in notes", id))
+		case conditionalMustRequirements[id]:
+			errs = append(errs, fmt.Sprintf("Requirement '%s' is MUST level but status is '%s'. It must be 'Implemented', or 'N/A' with a justification in notes.", id, status))
+		default:
+			errs = append(errs, fmt.Sprintf("Requirement '%s' is MUST level but status is '%s'. It must be 'Implemented'.", id, status))
+		}
+	}
+	if status == "N/A" && strings.TrimSpace(notes) == "" {
+		errs = append(errs, fmt.Sprintf("Notes required for '%s' when status is N/A", id))
+	}
+	return errs, warnings
+}
+
+// checkArtifactEvidence inspects a referenced test artifact for the given
+// requirement. Any failing test in the artifact is an error. The test to
+// check is the explicit #fragment if present, otherwise the upstream test
+// mapped to the requirement (if any). That test must exist and pass; a
+// skipped test is an error when the requirement is marked Implemented.
+func checkArtifactEvidence(ref evidenceRef, kind artifactKind, link, reqID, status string, reports map[string]*artifactReport) []string {
+	var out []string
+	artifactName := strings.SplitN(link, "#", 2)[0]
+
+	report, seen := reports[ref.Path]
+	if !seen {
+		var err error
+		report, err = parseArtifact(ref.Path, kind)
+		if err != nil {
+			out = append(out, fmt.Sprintf("Invalid test artifact for '%s': %s (%v)", reqID, artifactName, err))
+			reports[ref.Path] = nil
+			return out
+		}
+		reports[ref.Path] = report
+		if len(report.Failures) > 0 {
+			failures := append([]string(nil), report.Failures...)
+			sort.Strings(failures)
+			out = append(out, fmt.Sprintf("Test artifact %s contains failing tests: %s", artifactName, strings.Join(failures, ", ")))
+		}
+	}
+	if report == nil {
+		// Parse already failed and was reported for an earlier reference.
+		return out
+	}
+
+	testName := ref.Fragment
+	if testName == "" {
+		testName = autoTestedRequirements[reqID]
+	}
+	if testName == "" {
+		return out
+	}
+
+	switch report.outcomeFor(testName) {
+	case outcomeUnknown:
+		out = append(out, fmt.Sprintf("Test '%s' referenced by '%s' was not found in %s", testName, reqID, artifactName))
+	case outcomeFail:
+		out = append(out, fmt.Sprintf("Test '%s' referenced by '%s' failed in %s", testName, reqID, artifactName))
+	case outcomeSkip:
+		if status == "Implemented" {
+			out = append(out, fmt.Sprintf("Requirement '%s' is Implemented but test '%s' was skipped in %s", reqID, testName, artifactName))
+		}
+	}
+	return out
+}
+
 func main() {
 	if len(os.Args) < 2 {
 		fmt.Println("Usage: go run -tags validate scripts/validate.go <path_to_product.yaml> ...")
@@ -204,6 +621,7 @@ func validateProduct(path string, cncfMembers map[string]bool) bool {
 	}
 
 	errors := []string{}
+	warnings := []string{}
 	var mu sync.Mutex
 	var wg sync.WaitGroup
 
@@ -212,6 +630,11 @@ func validateProduct(path string, cncfMembers map[string]bool) bool {
 	addError := func(msg string) {
 		mu.Lock()
 		errors = append(errors, msg)
+		mu.Unlock()
+	}
+	addWarning := func(msg string) {
+		mu.Lock()
+		warnings = append(warnings, msg)
 		mu.Unlock()
 	}
 
@@ -300,6 +723,10 @@ func validateProduct(path string, cncfMembers map[string]bool) bool {
 	if product.Spec == nil {
 		addError("Missing 'spec' section")
 	} else {
+		productDir := filepath.Dir(path)
+		hybrid := supportsHybridVerification(schemaVersion)
+		artifactReports := make(map[string]*artifactReport)
+
 		for category, schemaReqs := range schema.Spec {
 			prodReqs, ok := product.Spec[category]
 			if !ok {
@@ -324,25 +751,16 @@ func validateProduct(path string, cncfMembers map[string]bool) bool {
 					continue
 				}
 
-				// Check Status
-				if !validStatuses[pReq.Status] {
-					addError(fmt.Sprintf("Invalid status '%s' for '%s'. Must be one of %v", pReq.Status, sReq.ID, keys(validStatuses)))
+				errs, warns := checkRequirementStatus(sReq.ID, sReq.Level, pReq.Status, pReq.Notes)
+				for _, e := range errs {
+					addError(e)
 				}
-
-				// Check MUST level
-				if sReq.Level == "MUST" {
-					if pReq.Status != "Implemented" {
-						addError(fmt.Sprintf("Requirement '%s' is MUST level but status is '%s'. It must be 'Implemented'.", sReq.ID, pReq.Status))
-					}
-				}
-
-				// Check N/A notes
-				if pReq.Status == "N/A" && pReq.Notes == "" {
-					addError(fmt.Sprintf("Notes required for '%s' when status is N/A", sReq.ID))
+				for _, w := range warns {
+					addWarning(w)
 				}
 
 				// Validate Evidence Links
-				productDir := filepath.Dir(path)
+				hasArtifact := false
 				for _, link := range pReq.Evidence {
 					if link == "" {
 						continue
@@ -354,16 +772,38 @@ func validateProduct(path string, cncfMembers map[string]bool) bool {
 							if err := validateURL(url); isRateLimited(err) {
 								addWarning(fmt.Sprintf("Evidence URL for '%s' could not be verified: %s (%v)", reqID, url, err))
 							} else if err != nil {
+					if strings.HasPrefix(link, "http://") || strings.HasPrefix(link, "https://") {
+						wg.Add(1)
+						go func(url, reqID string) {
+							defer wg.Done()
+							if err := validateURL(url); err != nil {
 								addError(fmt.Sprintf("Invalid evidence URL for '%s': %s (%v)", reqID, url, err))
 							}
-						} else {
-							// Check local file
-							fullPath := filepath.Join(productDir, url)
-							if _, err := os.Stat(fullPath); os.IsNotExist(err) {
-								addError(fmt.Sprintf("Invalid evidence file for '%s': %s (not found at %s)", reqID, url, fullPath))
-							}
-						}
-					}(link, sReq.ID)
+						}(link, sReq.ID)
+						continue
+					}
+
+					ref, err := resolveEvidencePath(productDir, link)
+					if err != nil {
+						addError(fmt.Sprintf("Invalid evidence file for '%s': %s (%v)", sReq.ID, link, err))
+						continue
+					}
+					if _, err := os.Stat(ref.Path); os.IsNotExist(err) {
+						addError(fmt.Sprintf("Invalid evidence file for '%s': %s (not found at %s)", sReq.ID, link, ref.Path))
+						continue
+					}
+					kind := classifyArtifact(ref.Path)
+					if kind == artifactNone {
+						continue
+					}
+					hasArtifact = true
+					for _, e := range checkArtifactEvidence(ref, kind, link, sReq.ID, pReq.Status, artifactReports) {
+						addError(e)
+					}
+				}
+
+				if testName, autoTested := autoTestedRequirements[sReq.ID]; autoTested && hybrid && pReq.Status == "Implemented" && !hasArtifact {
+					addWarning(fmt.Sprintf("Requirement '%s' is covered by automated test '%s'; including test artifacts (e2e.log, junit.xml, or results.json) as evidence is recommended for v%s+ submissions", sReq.ID, testName, schemaVersion))
 				}
 			}
 		}
@@ -376,6 +816,8 @@ func validateProduct(path string, cncfMembers map[string]bool) bool {
 		for _, w := range warnings {
 			fmt.Printf("  - %s\n", w)
 		}
+	for _, w := range warnings {
+		fmt.Printf("::warning file=%s::%s\n", path, w)
 	}
 
 	if len(errors) > 0 {
@@ -386,7 +828,11 @@ func validateProduct(path string, cncfMembers map[string]bool) bool {
 		return false
 	}
 
-	fmt.Println("Validation successful!")
+	if len(warnings) > 0 {
+		fmt.Printf("Validation successful with %d warning(s).\n", len(warnings))
+	} else {
+		fmt.Println("Validation successful!")
+	}
 	return true
 }
 

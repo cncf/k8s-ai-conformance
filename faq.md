@@ -15,7 +15,7 @@ The primary goals of the program are to:
 
 ### Will there be AI conformance tests?
 
-Automated conformance tests are planned for 2026. Currently, certification is based on self-assessment using a conformance checklist.
+Automated conformance tests are now available in the upstream [AI Conformance test suite](https://github.com/kubernetes-sigs/ai-conformance/tree/main/test). Starting with Kubernetes v1.37, we support a hybrid verification approach where automated tests are recommended for requirements that have them (e.g., Secure Accelerator Access, Gang Scheduling, Cluster Autoscaling), combined with manual attestation and documentation for the remaining requirements.
 
 ### Why are some requirements conditional?
 
@@ -24,6 +24,8 @@ The context of the requirements doesn’t always apply to all platforms. For exa
 ### Does a "Not Applicable" (N/A) status mean platforms can skip requirements?
 
 No. The justification for an N/A status cannot be "we don’t support this feature," but rather an explanation of why the requirement's context doesn't apply to the platform's environment.
+
+For automated tests, platforms may skip or opt out of specific sub-tests (using test-specific flags or `-run` filtering) if the corresponding requirement is N/A, provided a clear justification is given in the checklist notes.
 
 ### Is self-certification per product or per company?
 

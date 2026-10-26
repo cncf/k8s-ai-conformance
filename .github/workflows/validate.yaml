@@ -3,31 +3,80 @@ name: Validate AI Conformance
 on:
   pull_request:
     paths:
-      - '**/PRODUCT.yaml'
+      - 'v*/**'
+      - 'scripts/**'
+      - '.github/workflows/validate.yaml'
   workflow_dispatch:
+    inputs:
+      product_dirs:
+        description: 'Space-separated product directories to validate (e.g. v1.37/gke v1.37/openshift)'
+        required: true
+        type: string
 
 jobs:
   validate:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
+        with:
+          fetch-depth: 0
+
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
           go-version: '1.25'
-          
+
       - name: Install dependencies
         run: go mod download
-        
-      - name: Get changed files
-        id: changed-files
-        uses: tj-actions/changed-files@v41
-        with:
-          files: |
-            **/PRODUCT.yaml
-            
-      - name: Validate changed files
-        if: steps.changed-files.outputs.any_changed == 'true'
+
+      - name: Run validator unit tests
+        run: go test -v -tags validate ./scripts/...
+
+      - name: Determine product files to validate
+        id: files
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PRODUCT_DIRS: ${{ inputs.product_dirs }}
         run: |
-          go run -tags validate scripts/validate.go ${{ steps.changed-files.outputs.all_changed_files }}
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            DIRS="$PRODUCT_DIRS"
+          else
+            # Any file added/changed under vX.Y/<product>/ (PRODUCT.yaml or test
+            # artifacts) triggers validation of that product's PRODUCT.yaml.
+            # grep exits 1 on no match; don't let pipefail kill the step.
+            DIRS=$(git diff --name-only --diff-filter=ACMR "${BASE_SHA}...${HEAD_SHA}" \
+              | { grep -E '^v[0-9]+\.[0-9]+/[^/]+/' || true; } \
+              | cut -d/ -f1,2 \
+              | sort -u \
+              | tr '\n' ' ')
+          fi
+
+          FILES=""
+          for dir in $DIRS; do
+            dir="${dir%/}"
+            if [ -f "$dir/PRODUCT.yaml" ]; then
+              FILES="$FILES $dir/PRODUCT.yaml"
+            else
+              echo "::notice::Skipping $dir: no PRODUCT.yaml present"
+            fi
+          done
+          FILES="${FILES# }"
+
+          echo "list=$FILES" >> "$GITHUB_OUTPUT"
+          if [ -n "$FILES" ]; then
+            echo "any_changed=true" >> "$GITHUB_OUTPUT"
+            echo "Validating: $FILES"
+          else
+            echo "any_changed=false" >> "$GITHUB_OUTPUT"
+            echo "No product submissions to validate."
+          fi
+
+      - name: Validate changed files
+        if: steps.files.outputs.any_changed == 'true'
+        env:
+          FILE_LIST: ${{ steps.files.outputs.list }}
+        run: |
+          # shellcheck disable=SC2086 -- intentional word splitting of space-separated paths
+          go run -tags validate scripts/validate.go $FILE_LIST
