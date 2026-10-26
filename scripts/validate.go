@@ -153,7 +153,17 @@ var autoTestedRequirements = map[string]string{
 	"secure_accelerator_access": "TestSecureAcceleratorAccess",
 	"gang_scheduling":           "TestGangScheduling",
 	"cluster_autoscaling":       "TestAcceleratorClusterAutoscaling",
+	"ai_service_metrics":        "TestAIServiceMetrics",
+	"robust_controller":         "TestRobustCRDControllerOperation",
+	"driver_runtime_management": "TestAcceleratorDriverRuntimeManagement",
+	"workload_sandboxing":       "TestWorkloadSandboxing",
+	"accelerator_metrics":       "TestAcceleratorPerformanceMetrics",
+	"pod_autoscaling":           "TestHPAAutoscaling",
 }
+
+// upstreamTestSuiteURL is where vendors can request or contribute test support
+// for their platform.
+const upstreamTestSuiteURL = "https://github.com/kubernetes-sigs/ai-conformance"
 
 // conditionalMustRequirements lists the MUST requirements whose condition may
 // not apply to a platform, and which may therefore be marked N/A with a
@@ -552,7 +562,7 @@ func checkArtifactEvidence(ref evidenceRef, kind artifactKind, link, reqID, stat
 		out = append(out, fmt.Sprintf("Test '%s' referenced by '%s' failed in %s", testName, reqID, artifactName))
 	case outcomeSkip:
 		if status == "Implemented" {
-			out = append(out, fmt.Sprintf("Requirement '%s' is Implemented but test '%s' was skipped in %s", reqID, testName, artifactName))
+			out = append(out, fmt.Sprintf("Requirement '%s' is Implemented but test '%s' was skipped in %s. If you verified this requirement manually, cite documentation as evidence instead of the test artifact. If the test does not support your platform yet, please open an issue or PR at %s", reqID, testName, artifactName, upstreamTestSuiteURL))
 		}
 	}
 	return out
@@ -783,7 +793,7 @@ func validateProduct(path string, cncfMembers map[string]bool) bool {
 				}
 
 				if testName, autoTested := autoTestedRequirements[sReq.ID]; autoTested && hybrid && pReq.Status == "Implemented" && !hasArtifact {
-					addWarning(fmt.Sprintf("Requirement '%s' is covered by automated test '%s'; including test artifacts (e2e.log, junit.xml, or results.json) as evidence is recommended for v%s+ submissions", sReq.ID, testName, schemaVersion))
+					addWarning(fmt.Sprintf("Requirement '%s' is covered by automated test '%s'; including test artifacts (e2e.log, junit.xml, or results.json) as evidence is recommended for v%s+ submissions. If the test does not support your platform yet, please open an issue or PR at %s", sReq.ID, testName, schemaVersion, upstreamTestSuiteURL))
 				}
 			}
 		}
