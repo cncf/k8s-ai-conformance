@@ -1,0 +1,102 @@
+=== RUN   TestSecureAcceleratorAccess
+    util_test.go:568: Checking environment: Found Ready node ip-10-0-23-112.ec2.internal with allocatable nvidia.com/gpu: 1
+    util_test.go:272: Secure accelerator access test running with allocation mode: device-plugin (accelerator node: ip-10-0-23-112.ec2.internal)
+=== RUN   TestSecureAcceleratorAccess/PositiveAccessTest
+I1026 23:42:16.149760  498377 warnings.go:107] "Warning: would violate PodSecurity \"restricted:latest\": allowPrivilegeEscalation != false (container \"prober\" must set securityContext.allowPrivilegeEscalation=false), unrestricted capabilities (container \"prober\" must set securityContext.capabilities.drop=[\"ALL\"]), runAsNonRoot != true (pod or container \"prober\" must set securityContext.runAsNonRoot=true), seccompProfile (pod or container \"prober\" must set securityContext.seccompProfile.type to \"RuntimeDefault\" or \"Localhost\")"
+    util_test.go:704: Waiting for Pod pos-pod to be running...
+    util_test.go:905: Waiting to see if Pod pos-pod/prober logs contain 'RESULT: ACCELERATOR_COUNT=1'...
+    util_test.go:921: PASS: prober sees exactly 1 accelerator device(s).
+=== RUN   TestSecureAcceleratorAccess/NegativeIsolationTest
+I1026 23:42:53.058186  498377 warnings.go:107] "Warning: would violate PodSecurity \"restricted:latest\": allowPrivilegeEscalation != false (container \"prober\" must set securityContext.allowPrivilegeEscalation=false), unrestricted capabilities (container \"prober\" must set securityContext.capabilities.drop=[\"ALL\"]), runAsNonRoot != true (pod or container \"prober\" must set securityContext.runAsNonRoot=true), seccompProfile (pod or container \"prober\" must set securityContext.seccompProfile.type to \"RuntimeDefault\" or \"Localhost\")"
+    util_test.go:704: Waiting for Pod neg-pod to be running...
+    util_test.go:905: Waiting to see if Pod neg-pod/prober logs contain 'RESULT: ACCELERATOR_COUNT=0'...
+    util_test.go:921: PASS: prober sees exactly 0 accelerator device(s).
+=== RUN   TestSecureAcceleratorAccess/MultiContainerIsolationTest
+I1026 23:43:29.928983  498377 warnings.go:107] "Warning: would violate PodSecurity \"restricted:latest\": allowPrivilegeEscalation != false (containers \"authorized\", \"unauthorized\" must set securityContext.allowPrivilegeEscalation=false), unrestricted capabilities (containers \"authorized\", \"unauthorized\" must set securityContext.capabilities.drop=[\"ALL\"]), runAsNonRoot != true (pod or containers \"authorized\", \"unauthorized\" must set securityContext.runAsNonRoot=true), seccompProfile (pod or containers \"authorized\", \"unauthorized\" must set securityContext.seccompProfile.type to \"RuntimeDefault\" or \"Localhost\")"
+    util_test.go:704: Waiting for Pod multi-container-pod to be running...
+    util_test.go:905: Waiting to see if Pod multi-container-pod/authorized logs contain 'RESULT: ACCELERATOR_COUNT=1'...
+    util_test.go:921: PASS: authorized sees exactly 1 accelerator device(s).
+    util_test.go:905: Waiting to see if Pod multi-container-pod/unauthorized logs contain 'RESULT: ACCELERATOR_COUNT=0'...
+    util_test.go:921: PASS: unauthorized sees exactly 0 accelerator device(s).
+=== NAME  TestSecureAcceleratorAccess
+    ai_conformance_test.go:28: Cleaning up namespace ai-conformance-4svr9...
+--- PASS: TestSecureAcceleratorAccess (119.56s)
+    --- PASS: TestSecureAcceleratorAccess/PositiveAccessTest (36.90s)
+    --- PASS: TestSecureAcceleratorAccess/NegativeIsolationTest (36.89s)
+    --- PASS: TestSecureAcceleratorAccess/MultiContainerIsolationTest (37.45s)
+=== RUN   TestAIServiceMetrics
+    ai_service_metrics_test.go:133: Deploying metrics workload ai-service-metrics-wktgg/ai-metrics-stub (run ID 72kgs7bncj)...
+    ai_service_metrics_test.go:136: Configuring the monitoring system to scrape the workload...
+    ai_service_metrics_test.go:137: Created scrape configuration ServiceMonitor ai-service-metrics-wktgg/ai-metrics-stub
+    ai_service_metrics_test.go:150: Waiting up to 5m0s for the monitoring system to collect the workload's metrics...
+    ai_service_metrics_test.go:155:   request count: collected (baseline 0)
+    ai_service_metrics_test.go:155:   request latency histogram count: collected (baseline 0)
+    ai_service_metrics_test.go:155:   queue depth gauge: collected (baseline 0)
+    ai_service_metrics_test.go:157: Sending 10 inference requests...
+    ai_service_metrics_test.go:160: Waiting up to 5m0s for the collected request counts to increase by 10...
+    ai_service_metrics_test.go:165:   request count: ok (10 = baseline 0 + 10)
+    ai_service_metrics_test.go:165:   request latency histogram count: ok (10 = baseline 0 + 10)
+    ai_service_metrics_test.go:165:   queue depth gauge: ok (0)
+    ai_service_metrics_test.go:166: The monitoring system collected the workload's request count, latency and queue depth metrics
+    ai_service_metrics_test.go:128: Cleaning up namespace ai-service-metrics-wktgg...
+--- PASS: TestAIServiceMetrics (152.30s)
+=== RUN   TestAcceleratorClusterAutoscaling
+    util_test.go:568: Checking environment: Found Ready node ip-10-0-23-112.ec2.internal with allocatable nvidia.com/gpu: 1
+    cluster_autoscaling_test.go:101: Accelerator autoscaling test running with allocation mode: device-plugin
+    cluster_autoscaling_test.go:117: Captured accelerator pool baseline: 1 Ready, schedulable nodes matching ai-conformance-pool=gpu
+I1026 23:47:19.886357  498377 warnings.go:107] "Warning: would violate PodSecurity \"restricted:latest\": allowPrivilegeEscalation != false (container \"worker\" must set securityContext.allowPrivilegeEscalation=false), unrestricted capabilities (container \"worker\" must set securityContext.capabilities.drop=[\"ALL\"]), runAsNonRoot != true (pod or container \"worker\" must set securityContext.runAsNonRoot=true), seccompProfile (pod or container \"worker\" must set securityContext.seccompProfile.type to \"RuntimeDefault\" or \"Localhost\")"
+    cluster_autoscaling_test.go:183: Baseline established: 1 accelerator Pods occupy 1 distinct pool nodes
+I1026 23:47:25.034605  498377 warnings.go:107] "Warning: would violate PodSecurity \"restricted:latest\": allowPrivilegeEscalation != false (container \"worker\" must set securityContext.allowPrivilegeEscalation=false), unrestricted capabilities (container \"worker\" must set securityContext.capabilities.drop=[\"ALL\"]), runAsNonRoot != true (pod or container \"worker\" must set securityContext.runAsNonRoot=true), seccompProfile (pod or container \"worker\" must set securityContext.seccompProfile.type to \"RuntimeDefault\" or \"Localhost\")"
+    cluster_autoscaling_test.go:201: Scale-up triggered by Pending Pod autoscaler-trigger: 0/6 nodes are available: 1 Insufficient nvidia.com/gpu, 2 node(s) didn't match Pod's node affinity/selector, 3 node(s) had untolerated taint(s). no new claims to deallocate, preemption: 0/6 nodes are available: 1 No preemption victims found for incoming pod, 5 Preemption is not helpful for scheduling.
+    cluster_autoscaling_test.go:225: PASS: Accelerator pool scaled from 1 to 2 nodes; trigger Pod is Running on new node ip-10-0-22-31.ec2.internal
+    cluster_autoscaling_test.go:245: PASS: Accelerator pool returned to its baseline size of 1 nodes
+    cluster_autoscaling_test.go:128: Cleaning up namespace accelerator-autoscaling-fzbj7...
+--- PASS: TestAcceleratorClusterAutoscaling (1119.56s)
+=== RUN   TestRobustCRDControllerOperation
+=== RUN   TestRobustCRDControllerOperation/OperatorPodsRunning
+    crd_controller_test.go:136: Verifying operator pods are Ready in namespace kubeflow-system (selector: app.kubernetes.io/name=kubeflow-trainer)...
+    crd_controller_test.go:136: PASS: 1 operator pod(s) are Ready in namespace kubeflow-system
+=== RUN   TestRobustCRDControllerOperation/CRDRegistered
+    crd_controller_test.go:140: Verifying CRD trainjobs.trainer.kubeflow.org is registered and Established...
+    crd_controller_test.go:140: PASS: CRD trainjobs.trainer.kubeflow.org is registered and Established
+=== RUN   TestRobustCRDControllerOperation/WebhookOperational
+    crd_controller_test.go:144: Verifying ValidatingWebhookConfiguration validator.trainer.kubeflow.org exists...
+    crd_controller_test.go:144:   Webhook: validator.clustertrainingruntime.trainer.kubeflow.org (rules: 1, caBundle: 1208 bytes)
+    crd_controller_test.go:144:   Webhook: validator.trainingruntime.trainer.kubeflow.org (rules: 1, caBundle: 1208 bytes)
+    crd_controller_test.go:144:   Webhook: validator.trainjob.trainer.kubeflow.org (rules: 1, caBundle: 1208 bytes)
+    crd_controller_test.go:144: PASS: ValidatingWebhookConfiguration validator.trainer.kubeflow.org exists with 3 webhook(s)
+=== RUN   TestRobustCRDControllerOperation/WebhookRejectsInvalidCR
+    crd_controller_test.go:148: Submitting invalid CR to verify webhook rejection...
+    crd_controller_test.go:148: PASS: Webhook correctly rejected invalid CR: admission webhook "validator.trainjob.trainer.kubeflow.org" denied the request: spec.RuntimeRef: Invalid value: {"name":"does-not-exist-runtime","apiGroup":"trainer.kubeflow.org","kind":"ClusterTrainingRuntime"}: ClusterTrainingRuntime.trainer.kubeflow.org "does-not-exist-runtime" not found: specified clusterTrainingRuntime must be created before the TrainJob is created
+=== RUN   TestRobustCRDControllerOperation/ControllerReconcilesCR
+    crd_controller_test.go:152: Verifying runtime torch-distributed exists...
+    crd_controller_test.go:152: Creating valid CR valid-cr...
+    crd_controller_test.go:152: Waiting for controller to reconcile CR valid-cr...
+    crd_controller_test.go:397:   CR condition: type=Complete, status=True, reason=AllJobsCompleted
+    crd_controller_test.go:152: PASS: Controller reconciled CR valid-cr
+    crd_controller_test.go:314: Cleaning up CR valid-cr...
+=== NAME  TestRobustCRDControllerOperation
+    crd_controller_test.go:130: Cleaning up namespace crd-controller-2ftqn...
+--- PASS: TestRobustCRDControllerOperation (13.90s)
+    --- PASS: TestRobustCRDControllerOperation/OperatorPodsRunning (0.23s)
+    --- PASS: TestRobustCRDControllerOperation/CRDRegistered (0.49s)
+    --- PASS: TestRobustCRDControllerOperation/WebhookOperational (0.23s)
+    --- PASS: TestRobustCRDControllerOperation/WebhookRejectsInvalidCR (0.25s)
+    --- PASS: TestRobustCRDControllerOperation/ControllerReconcilesCR (5.96s)
+=== RUN   TestGangScheduling
+=== RUN   TestGangScheduling/PositiveGangScheduling
+    gang_scheduling_test.go:71: Creating positive test job pos-job...
+    gang_scheduling_test.go:158: Waiting for positive job pos-job to complete...
+    gang_scheduling_test.go:180: Verifying scheduling evidence for completed job pos-job...
+    gang_scheduling_test.go:215:   Pod pos-job-t7xld: schedulerName=default-scheduler, nodeName=ip-10-0-23-112.ec2.internal, phase=Succeeded
+    gang_scheduling_test.go:215:   Pod pos-job-v7vjt: schedulerName=default-scheduler, nodeName=ip-10-0-23-112.ec2.internal, phase=Succeeded
+    gang_scheduling_test.go:219: Positive job pos-job completed with 2 pods verified
+=== RUN   TestGangScheduling/NegativeGangScheduling
+    gang_scheduling_test.go:92: Creating negative test job neg-job...
+    gang_scheduling_test.go:225: Verifying negative job neg-job remains suspended or pending without partial pods for 30s...
+    gang_scheduling_test.go:257: Negative job neg-job successfully remained suspended or pending with 0 bound pods throughout the 30s verification window.
+--- PASS: TestGangScheduling (41.75s)
+    --- PASS: TestGangScheduling/PositiveGangScheduling (11.25s)
+    --- PASS: TestGangScheduling/NegativeGangScheduling (30.50s)
+PASS
+ok  	github.com/kubernetes-sigs/ai-conformance/test	1447.074s
