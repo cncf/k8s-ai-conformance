@@ -2,7 +2,8 @@
 
 [NVIDIA Kubernetes Engine (NVKE)](https://github.com/dsx-ai-factory/nvke)
 provides GPU Kubernetes clusters on bare metal. The tested AI platform combines
-AICR's `gb200-nvke-ubuntu-training-kubeflow` recipe with Agentgateway for
+[NVIDIA AI Cluster Runtime (AICR)](https://github.com/NVIDIA/aicr)'s
+`gb200-nvke-ubuntu-training-kubeflow` recipe with Agentgateway for
 Gateway API traffic management.
 
 ## Conformance Submission
