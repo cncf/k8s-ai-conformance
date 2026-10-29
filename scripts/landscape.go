@@ -200,6 +200,49 @@ func mentionsAny(name string, tokens []string) bool {
 	return false
 }
 
+// memberSuffixes mirrors validate.go: a valid vendorName equals a card name in
+// the "CNCF Members" category with one of these suffixes stripped.
+var memberSuffixes = []string{" (member)", " (supporter)"}
+
+// findMemberLogo returns the name and logo of vendorName's card in the
+// "CNCF Members" category, matched exactly as validate.go checks vendorName.
+// Returns empty strings if there is no such card.
+func findMemberLogo(data []byte, vendorName string) (memberName, logo string, err error) {
+	var doc struct {
+		Landscape []struct {
+			Name          string `yaml:"name"`
+			Subcategories []struct {
+				Items []struct {
+					Name string `yaml:"name"`
+					Logo string `yaml:"logo"`
+				} `yaml:"items"`
+			} `yaml:"subcategories"`
+		} `yaml:"landscape"`
+	}
+	if err := yaml.Unmarshal(data, &doc); err != nil {
+		return "", "", fmt.Errorf("parsing landscape YAML: %w", err)
+	}
+	vendorName = strings.TrimSpace(vendorName)
+	for _, category := range doc.Landscape {
+		if category.Name != "CNCF Members" {
+			continue
+		}
+		for _, sub := range category.Subcategories {
+			for _, item := range sub.Items {
+				name := item.Name
+				for _, suffix := range memberSuffixes {
+					name = strings.TrimSuffix(name, suffix)
+				}
+				if vendorName != "" && strings.TrimSpace(name) == vendorName {
+					return item.Name, item.Logo, nil
+				}
+			}
+		}
+		return "", "", nil
+	}
+	return "", "", fmt.Errorf("could not find 'CNCF Members' category in landscape data")
+}
+
 // collectEntries parses landscape YAML and returns all item entries in
 // document order.
 func collectEntries(data []byte) ([]*LandscapeEntry, error) {
@@ -685,16 +728,9 @@ func processProduct(tmpDir, landscapePath string, meta *ProductMeta) (string, er
 	}
 
 	log.Printf("No existing entry found for %q, creating new entry...", meta.PlatformName)
-	logoFilename := sanitizeLogoName(meta.PlatformName)
-	if meta.ProductLogoURL != "" {
-		logoDestPath := filepath.Join(tmpDir, "hosted_logos", logoFilename)
-		if err := downloadLogo(meta.ProductLogoURL, logoDestPath); err != nil {
-			log.Printf("WARNING: Failed to download logo: %v (continuing without logo)", err)
-		} else {
-			log.Printf("Downloaded logo to %s", logoDestPath)
-		}
-	} else {
-		log.Println("WARNING: No productLogoUrl provided, skipping logo download")
+	logoFilename, logoNote, err := resolveNewEntryLogo(tmpDir, landscapeData, meta)
+	if err != nil {
+		return "", err
 	}
 
 	modified, err := insertNewEntry(landscapeData, meta, logoFilename)
@@ -704,7 +740,49 @@ func processProduct(tmpDir, landscapePath string, meta *ProductMeta) (string, er
 	if err := os.WriteFile(landscapePath, modified, 0644); err != nil {
 		return "", fmt.Errorf("writing modified landscape.yml: %w", err)
 	}
-	return "added new entry", nil
+	return "added new entry" + logoNote, nil
+}
+
+// resolveNewEntryLogo returns a logo filename for a new landscape entry that is
+// guaranteed to exist in <repoDir>/hosted_logos. It downloads productLogoUrl
+// when provided and falls back to the vendor's CNCF member logo when the URL
+// is omitted or the download fails. logoNote is appended to the PR action text
+// so reviewers can see when the fallback was used.
+func resolveNewEntryLogo(repoDir string, landscapeData []byte, meta *ProductMeta) (logoFilename, logoNote string, err error) {
+	logosDir := filepath.Join(repoDir, "hosted_logos")
+
+	downloadFailed := false
+	if meta.ProductLogoURL != "" {
+		logoFilename = sanitizeLogoName(meta.PlatformName)
+		logoDestPath := filepath.Join(logosDir, logoFilename)
+		if err := downloadLogo(meta.ProductLogoURL, logoDestPath); err != nil {
+			log.Printf("WARNING: Failed to download logo: %v (falling back to vendor member logo)", err)
+			downloadFailed = true
+		} else {
+			log.Printf("Downloaded logo to %s", logoDestPath)
+			return logoFilename, "", nil
+		}
+	} else {
+		log.Println("No productLogoUrl provided, falling back to vendor member logo")
+	}
+
+	memberName, memberLogo, err := findMemberLogo(landscapeData, meta.VendorName)
+	if err != nil {
+		return "", "", fmt.Errorf("searching landscape for vendor member logo: %w", err)
+	}
+	if memberLogo == "" {
+		return "", "", fmt.Errorf("no product logo available and no CNCF member logo found for vendor %q; "+
+			"set productLogoUrl or add the logo to cncf/landscape manually", meta.VendorName)
+	}
+	if _, err := os.Stat(filepath.Join(logosDir, memberLogo)); err != nil {
+		return "", "", fmt.Errorf("member logo %s for vendor %q is not in hosted_logos: %w", memberLogo, meta.VendorName, err)
+	}
+	log.Printf("Using member logo %s from %q", memberLogo, memberName)
+	logoNote = fmt.Sprintf(" using the vendor member logo (%s)", memberLogo)
+	if downloadFailed {
+		logoNote += fmt.Sprintf(" because productLogoUrl %s could not be downloaded", meta.ProductLogoURL)
+	}
+	return memberLogo, logoNote, nil
 }
 
 func main() {

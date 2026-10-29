@@ -32,6 +32,9 @@ jobs:
       - name: Run validator unit tests
         run: go test -v -tags validate ./scripts/...
 
+      - name: Run landscape generator unit tests
+        run: go test -v -tags landscape ./scripts/...
+
       - name: Determine product files to validate
         id: files
         env:
