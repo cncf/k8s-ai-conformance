@@ -1065,3 +1065,193 @@ func TestFindEntryByName_VendorQualified(t *testing.T) {
 		t.Fatalf("want Huawei entry (vendor tiebreak), got %+v", entry)
 	}
 }
+
+const memberLogoFixture = `landscape:
+  - category:
+    name: Platform
+    subcategories:
+      - subcategory:
+        name: Certified Kubernetes - AI Platform
+        items: []
+  - category:
+    name: CNCF Members
+    subcategories:
+      - subcategory:
+        name: Platinum
+        items:
+          - item:
+            name: Acme Cloud (member)
+            homepage_url: https://acme.example.com
+            logo: acme-cloud-member.svg
+          - item:
+            name: Acme (KCSP)
+            homepage_url: https://acme.example.com/kcsp
+            logo: acme-kcsp.svg
+          - item:
+            name: Globex Systems (member)
+            homepage_url: https://globex.example.com
+            logo: globex.svg
+          - item:
+            name: Globex Labs (member)
+            homepage_url: https://globex-labs.example.com
+            logo: globex-labs.svg
+`
+
+// setupLandscapeRepo writes memberLogoFixture and the given hosted logos into
+// a temp dir laid out like a cncf/landscape checkout.
+func setupLandscapeRepo(t *testing.T, logos ...string) (repoDir, landscapePath string) {
+	t.Helper()
+	repoDir = t.TempDir()
+	if err := os.Mkdir(filepath.Join(repoDir, "hosted_logos"), 0755); err != nil {
+		t.Fatal(err)
+	}
+	for _, l := range logos {
+		if err := os.WriteFile(filepath.Join(repoDir, "hosted_logos", l), []byte("<svg/>"), 0644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	landscapePath = filepath.Join(repoDir, "landscape.yml")
+	if err := os.WriteFile(landscapePath, []byte(memberLogoFixture), 0644); err != nil {
+		t.Fatal(err)
+	}
+	return repoDir, landscapePath
+}
+
+func TestFindMemberEntry(t *testing.T) {
+	tests := []struct {
+		vendor   string
+		wantLogo string
+	}{
+		{"Acme Cloud", "acme-cloud-member.svg"},
+		{"acme cloud", "acme-cloud-member.svg"},
+		{"Acme Cloud (ACME)", "acme-cloud-member.svg"},
+		{"Globex Systems", "globex.svg"},
+		{"Globex", ""}, // ambiguous: Globex Systems vs Globex Labs
+		{"Initech", ""},
+		{"", ""},
+	}
+	for _, tc := range tests {
+		entry, err := findMemberEntry([]byte(memberLogoFixture), tc.vendor)
+		if err != nil {
+			t.Fatalf("findMemberEntry(%q): unexpected error: %v", tc.vendor, err)
+		}
+		got := ""
+		if entry != nil {
+			got = entry.Logo
+		}
+		if got != tc.wantLogo {
+			t.Errorf("findMemberEntry(%q) logo = %q, want %q", tc.vendor, got, tc.wantLogo)
+		}
+	}
+}
+
+func TestResolveNewEntryLogo_DownloadSucceeds(t *testing.T) {
+	ts := newTestServer(200, "<svg>product</svg>")
+	defer ts.Close()
+	repoDir, _ := setupLandscapeRepo(t, "acme-cloud-member.svg")
+
+	meta := &ProductMeta{PlatformName: "Acme AI Platform", VendorName: "Acme Cloud", ProductLogoURL: ts.URL}
+	logo, note, err := resolveNewEntryLogo(repoDir, []byte(memberLogoFixture), meta)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if logo != "acme-ai-platform.svg" || note != "" {
+		t.Errorf("got (%q, %q), want (acme-ai-platform.svg, \"\")", logo, note)
+	}
+	if _, err := os.Stat(filepath.Join(repoDir, "hosted_logos", logo)); err != nil {
+		t.Errorf("downloaded logo missing: %v", err)
+	}
+}
+
+func TestResolveNewEntryLogo_FallsBackToMemberLogo(t *testing.T) {
+	ts := newTestServer(404, "not found")
+	defer ts.Close()
+
+	for name, logoURL := range map[string]string{"omitted": "", "download fails": ts.URL} {
+		t.Run(name, func(t *testing.T) {
+			repoDir, _ := setupLandscapeRepo(t, "acme-cloud-member.svg")
+			meta := &ProductMeta{PlatformName: "Acme AI Platform", VendorName: "Acme Cloud", ProductLogoURL: logoURL}
+			logo, note, err := resolveNewEntryLogo(repoDir, []byte(memberLogoFixture), meta)
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if logo != "acme-cloud-member.svg" {
+				t.Errorf("logo = %q, want acme-cloud-member.svg", logo)
+			}
+			if !strings.Contains(note, "acme-cloud-member.svg") {
+				t.Errorf("note %q should mention the member logo", note)
+			}
+			if _, err := os.Stat(filepath.Join(repoDir, "hosted_logos", "acme-ai-platform.svg")); !os.IsNotExist(err) {
+				t.Errorf("product logo should not exist, stat err = %v", err)
+			}
+		})
+	}
+}
+
+func TestResolveNewEntryLogo_Errors(t *testing.T) {
+	tests := []struct {
+		name   string
+		vendor string
+		logos  []string
+	}{
+		{"no member card", "Initech", nil},
+		{"ambiguous member card", "Globex", []string{"globex.svg", "globex-labs.svg"}},
+		{"member logo file missing", "Acme Cloud", nil},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			repoDir, _ := setupLandscapeRepo(t, tc.logos...)
+			meta := &ProductMeta{PlatformName: "Some Platform", VendorName: tc.vendor}
+			if _, _, err := resolveNewEntryLogo(repoDir, []byte(memberLogoFixture), meta); err == nil {
+				t.Fatal("expected error")
+			}
+		})
+	}
+}
+
+func TestProcessProduct_NewEntryUsesMemberLogo(t *testing.T) {
+	repoDir, landscapePath := setupLandscapeRepo(t, "acme-cloud-member.svg")
+	meta := &ProductMeta{
+		PlatformName: "Acme AI Platform",
+		VendorName:   "Acme Cloud",
+		WebsiteURL:   "https://acme.example.com/ai",
+		Description:  "An AI platform.",
+	}
+	action, err := processProduct(repoDir, landscapePath, meta)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.HasPrefix(action, "added new entry") || !strings.Contains(action, "acme-cloud-member.svg") {
+		t.Errorf("action = %q", action)
+	}
+	data, err := os.ReadFile(landscapePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(data), "            logo: acme-cloud-member.svg\n") {
+		t.Errorf("new entry should reference the member logo:\n%s", data)
+	}
+	if strings.Contains(string(data), "acme-ai-platform.svg") {
+		t.Error("new entry must not reference a logo that was never written")
+	}
+}
+
+func TestProcessProduct_NoLogoLeavesLandscapeUnchanged(t *testing.T) {
+	repoDir, landscapePath := setupLandscapeRepo(t)
+	meta := &ProductMeta{
+		PlatformName: "Initech Platform",
+		VendorName:   "Initech",
+		WebsiteURL:   "https://initech.example.com",
+		Description:  "An AI platform.",
+	}
+	if _, err := processProduct(repoDir, landscapePath, meta); err == nil {
+		t.Fatal("expected error when no logo is available")
+	}
+	data, err := os.ReadFile(landscapePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(data) != memberLogoFixture {
+		t.Error("landscape.yml must not be modified when no logo is available")
+	}
+}

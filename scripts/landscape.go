@@ -81,6 +81,7 @@ func parseProductYAML(data []byte) (*ProductMeta, error) {
 type LandscapeEntry struct {
 	Name                    string
 	HomepageURL             string
+	Logo                    string
 	HasAIPlatformSecondPath bool
 	ItemLineIndex           int // 0-indexed line of the "- item:" line
 	LastFieldLineIndex      int // 0-indexed line of the last field in the entry
@@ -200,6 +201,45 @@ func mentionsAny(name string, tokens []string) bool {
 	return false
 }
 
+// memberSuffix matches the " (member)" suffix of CNCF member cards.
+var memberSuffix = regexp.MustCompile(`\s*\(member\)\s*$`)
+
+// findMemberEntry searches a landscape.yml byte slice for the CNCF member card
+// of vendorName, e.g. "NVIDIA (member)" for vendor "NVIDIA". An exact token
+// match wins; otherwise the single best containment match is used, e.g.
+// "Amazon Web Services (member)" for "Amazon Web Services (AWS)". Returns nil
+// if nothing matches or the best containment match is ambiguous.
+func findMemberEntry(data []byte, vendorName string) (*LandscapeEntry, error) {
+	entries, err := collectEntries(data)
+	if err != nil {
+		return nil, err
+	}
+	var best *LandscapeEntry
+	bestOverlap := 0
+	ambiguous := false
+	for _, e := range entries {
+		loc := memberSuffix.FindStringIndex(e.Name)
+		if loc == nil {
+			continue
+		}
+		level, overlap := nameMatchLevel(vendorName, e.Name[:loc[0]])
+		switch {
+		case level == nameMatchExact:
+			return e, nil
+		case level != nameMatchContained:
+			continue
+		case overlap > bestOverlap:
+			best, bestOverlap, ambiguous = e, overlap, false
+		case overlap == bestOverlap:
+			ambiguous = true
+		}
+	}
+	if ambiguous {
+		return nil, nil
+	}
+	return best, nil
+}
+
 // collectEntries parses landscape YAML and returns all item entries in
 // document order.
 func collectEntries(data []byte) ([]*LandscapeEntry, error) {
@@ -243,7 +283,7 @@ func entryFromMapping(node *yaml.Node) *LandscapeEntry {
 		return nil
 	}
 
-	var name, homepageURL string
+	var name, homepageURL, logo string
 	var hasItem bool
 	var hasAIPlatform bool
 	var secondPathNode *yaml.Node
@@ -265,6 +305,8 @@ func entryFromMapping(node *yaml.Node) *LandscapeEntry {
 			name = val.Value
 		case "homepage_url":
 			homepageURL = val.Value
+		case "logo":
+			logo = val.Value
 		case "second_path":
 			secondPathNode = val
 		}
@@ -296,6 +338,7 @@ func entryFromMapping(node *yaml.Node) *LandscapeEntry {
 	return &LandscapeEntry{
 		Name:                    name,
 		HomepageURL:             homepageURL,
+		Logo:                    logo,
 		HasAIPlatformSecondPath: hasAIPlatform,
 		ItemLineIndex:           itemLine - 1, // convert 1-indexed to 0-indexed
 		LastFieldLineIndex:      maxLine - 1,  // convert 1-indexed to 0-indexed
@@ -685,16 +728,9 @@ func processProduct(tmpDir, landscapePath string, meta *ProductMeta) (string, er
 	}
 
 	log.Printf("No existing entry found for %q, creating new entry...", meta.PlatformName)
-	logoFilename := sanitizeLogoName(meta.PlatformName)
-	if meta.ProductLogoURL != "" {
-		logoDestPath := filepath.Join(tmpDir, "hosted_logos", logoFilename)
-		if err := downloadLogo(meta.ProductLogoURL, logoDestPath); err != nil {
-			log.Printf("WARNING: Failed to download logo: %v (continuing without logo)", err)
-		} else {
-			log.Printf("Downloaded logo to %s", logoDestPath)
-		}
-	} else {
-		log.Println("WARNING: No productLogoUrl provided, skipping logo download")
+	logoFilename, logoNote, err := resolveNewEntryLogo(tmpDir, landscapeData, meta)
+	if err != nil {
+		return "", err
 	}
 
 	modified, err := insertNewEntry(landscapeData, meta, logoFilename)
@@ -704,7 +740,43 @@ func processProduct(tmpDir, landscapePath string, meta *ProductMeta) (string, er
 	if err := os.WriteFile(landscapePath, modified, 0644); err != nil {
 		return "", fmt.Errorf("writing modified landscape.yml: %w", err)
 	}
-	return "added new entry", nil
+	return "added new entry" + logoNote, nil
+}
+
+// resolveNewEntryLogo returns a logo filename for a new landscape entry that is
+// guaranteed to exist in <repoDir>/hosted_logos. It downloads productLogoUrl
+// when provided and falls back to the vendor's CNCF member logo when the URL
+// is omitted or the download fails. logoNote is appended to the PR action text
+// so reviewers can see when the fallback was used.
+func resolveNewEntryLogo(repoDir string, landscapeData []byte, meta *ProductMeta) (logoFilename, logoNote string, err error) {
+	logosDir := filepath.Join(repoDir, "hosted_logos")
+
+	if meta.ProductLogoURL != "" {
+		logoFilename = sanitizeLogoName(meta.PlatformName)
+		logoDestPath := filepath.Join(logosDir, logoFilename)
+		if err := downloadLogo(meta.ProductLogoURL, logoDestPath); err != nil {
+			log.Printf("WARNING: Failed to download logo: %v (falling back to vendor member logo)", err)
+		} else {
+			log.Printf("Downloaded logo to %s", logoDestPath)
+			return logoFilename, "", nil
+		}
+	} else {
+		log.Println("No productLogoUrl provided, falling back to vendor member logo")
+	}
+
+	member, err := findMemberEntry(landscapeData, meta.VendorName)
+	if err != nil {
+		return "", "", fmt.Errorf("searching landscape for vendor member logo: %w", err)
+	}
+	if member == nil || member.Logo == "" {
+		return "", "", fmt.Errorf("no product logo available and no CNCF member logo found for vendor %q; "+
+			"set productLogoUrl or add the logo to cncf/landscape manually", meta.VendorName)
+	}
+	if _, err := os.Stat(filepath.Join(logosDir, member.Logo)); err != nil {
+		return "", "", fmt.Errorf("member logo %s for vendor %q is not in hosted_logos: %w", member.Logo, meta.VendorName, err)
+	}
+	log.Printf("Using member logo %s from %q", member.Logo, member.Name)
+	return member.Logo, fmt.Sprintf(" using the vendor member logo (%s)", member.Logo), nil
 }
 
 func main() {
