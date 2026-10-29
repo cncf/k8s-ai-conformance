@@ -1073,6 +1073,13 @@ const memberLogoFixture = `landscape:
       - subcategory:
         name: Certified Kubernetes - AI Platform
         items: []
+      - subcategory:
+        name: Something Else
+        items:
+          - item:
+            name: Initech (member)
+            homepage_url: https://initech.example.com
+            logo: initech.svg
   - category:
     name: CNCF Members
     subcategories:
@@ -1084,17 +1091,16 @@ const memberLogoFixture = `landscape:
             homepage_url: https://acme.example.com
             logo: acme-cloud-member.svg
           - item:
-            name: Acme (KCSP)
+            name: Acme Cloud (KCSP)
             homepage_url: https://acme.example.com/kcsp
             logo: acme-kcsp.svg
+      - subcategory:
+        name: End User Supporter and Contributor
+        items:
           - item:
-            name: Globex Systems (member)
-            homepage_url: https://globex.example.com
-            logo: globex.svg
-          - item:
-            name: Globex Labs (member)
-            homepage_url: https://globex-labs.example.com
-            logo: globex-labs.svg
+            name: Umbrella (supporter)
+            homepage_url: https://umbrella.example.com
+            logo: umbrella.svg
 `
 
 // setupLandscapeRepo writes memberLogoFixture and the given hosted logos into
@@ -1117,31 +1123,41 @@ func setupLandscapeRepo(t *testing.T, logos ...string) (repoDir, landscapePath s
 	return repoDir, landscapePath
 }
 
-func TestFindMemberEntry(t *testing.T) {
+func TestFindMemberLogo(t *testing.T) {
 	tests := []struct {
 		vendor   string
 		wantLogo string
 	}{
 		{"Acme Cloud", "acme-cloud-member.svg"},
-		{"acme cloud", "acme-cloud-member.svg"},
-		{"Acme Cloud (ACME)", "acme-cloud-member.svg"},
-		{"Globex Systems", "globex.svg"},
-		{"Globex", ""}, // ambiguous: Globex Systems vs Globex Labs
+		{"  Acme Cloud ", "acme-cloud-member.svg"},
+		{"Umbrella", "umbrella.svg"},
+		// Exact match only, same as validate.go.
+		{"acme cloud", ""},
+		{"Acme Cloud (ACME)", ""},
+		{"Acme", ""},
+		// "(member)" cards outside the CNCF Members category don't count.
 		{"Initech", ""},
 		{"", ""},
 	}
 	for _, tc := range tests {
-		entry, err := findMemberEntry([]byte(memberLogoFixture), tc.vendor)
+		_, logo, err := findMemberLogo([]byte(memberLogoFixture), tc.vendor)
 		if err != nil {
-			t.Fatalf("findMemberEntry(%q): unexpected error: %v", tc.vendor, err)
+			t.Fatalf("findMemberLogo(%q): unexpected error: %v", tc.vendor, err)
 		}
-		got := ""
-		if entry != nil {
-			got = entry.Logo
+		if logo != tc.wantLogo {
+			t.Errorf("findMemberLogo(%q) logo = %q, want %q", tc.vendor, logo, tc.wantLogo)
 		}
-		if got != tc.wantLogo {
-			t.Errorf("findMemberEntry(%q) logo = %q, want %q", tc.vendor, got, tc.wantLogo)
-		}
+	}
+}
+
+func TestFindMemberLogo_NoMembersCategory(t *testing.T) {
+	fixture := `landscape:
+  - category:
+    name: Platform
+    subcategories: []
+`
+	if _, _, err := findMemberLogo([]byte(fixture), "Acme Cloud"); err == nil {
+		t.Fatal("expected error when CNCF Members category is missing")
 	}
 }
 
@@ -1167,10 +1183,17 @@ func TestResolveNewEntryLogo_FallsBackToMemberLogo(t *testing.T) {
 	ts := newTestServer(404, "not found")
 	defer ts.Close()
 
-	for name, logoURL := range map[string]string{"omitted": "", "download fails": ts.URL} {
-		t.Run(name, func(t *testing.T) {
+	tests := []struct {
+		name    string
+		logoURL string
+	}{
+		{"omitted", ""},
+		{"download fails", ts.URL},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
 			repoDir, _ := setupLandscapeRepo(t, "acme-cloud-member.svg")
-			meta := &ProductMeta{PlatformName: "Acme AI Platform", VendorName: "Acme Cloud", ProductLogoURL: logoURL}
+			meta := &ProductMeta{PlatformName: "Acme AI Platform", VendorName: "Acme Cloud", ProductLogoURL: tc.logoURL}
 			logo, note, err := resolveNewEntryLogo(repoDir, []byte(memberLogoFixture), meta)
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
@@ -1180,6 +1203,12 @@ func TestResolveNewEntryLogo_FallsBackToMemberLogo(t *testing.T) {
 			}
 			if !strings.Contains(note, "acme-cloud-member.svg") {
 				t.Errorf("note %q should mention the member logo", note)
+			}
+			if tc.logoURL != "" && !strings.Contains(note, tc.logoURL) {
+				t.Errorf("note %q should mention the failed productLogoUrl", note)
+			}
+			if tc.logoURL == "" && strings.Contains(note, "productLogoUrl") {
+				t.Errorf("note %q should not mention productLogoUrl when none was set", note)
 			}
 			if _, err := os.Stat(filepath.Join(repoDir, "hosted_logos", "acme-ai-platform.svg")); !os.IsNotExist(err) {
 				t.Errorf("product logo should not exist, stat err = %v", err)
@@ -1194,8 +1223,8 @@ func TestResolveNewEntryLogo_Errors(t *testing.T) {
 		vendor string
 		logos  []string
 	}{
-		{"no member card", "Initech", nil},
-		{"ambiguous member card", "Globex", []string{"globex.svg", "globex-labs.svg"}},
+		{"no member card", "Globex", nil},
+		{"member card outside CNCF Members", "Initech", []string{"initech.svg"}},
 		{"member logo file missing", "Acme Cloud", nil},
 	}
 	for _, tc := range tests {
