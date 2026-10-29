@@ -1,0 +1,729 @@
+=== RUN   TestSecureAcceleratorAccess
+    util_test.go:308: DRA not usable (failed to get DeviceClass gpu.nvidia.com (is the DRA API resource.k8s.io/v1 enabled?): deviceclasses.resource.k8s.io "gpu.nvidia.com" not found); trying device plugin...
+    util_test.go:568: Checking environment: Found Ready node ip-172-31-3-8.eu-central-1.compute.internal with allocatable nvidia.com/gpu: 1
+    util_test.go:316: Auto-detected allocation mode: device-plugin
+    util_test.go:272: Secure accelerator access test running with allocation mode: device-plugin (accelerator node: ip-172-31-3-8.eu-central-1.compute.internal)
+=== RUN   TestSecureAcceleratorAccess/PositiveAccessTest
+    util_test.go:704: Waiting for Pod pos-pod to be running...
+    util_test.go:905: Waiting to see if Pod pos-pod/prober logs contain 'RESULT: ACCELERATOR_COUNT=1'...
+    util_test.go:921: PASS: prober sees exactly 1 accelerator device(s).
+=== RUN   TestSecureAcceleratorAccess/NegativeIsolationTest
+    util_test.go:704: Waiting for Pod neg-pod to be running...
+    util_test.go:905: Waiting to see if Pod neg-pod/prober logs contain 'RESULT: ACCELERATOR_COUNT=0'...
+    util_test.go:921: PASS: prober sees exactly 0 accelerator device(s).
+=== RUN   TestSecureAcceleratorAccess/MultiContainerIsolationTest
+    util_test.go:704: Waiting for Pod multi-container-pod to be running...
+    util_test.go:905: Waiting to see if Pod multi-container-pod/authorized logs contain 'RESULT: ACCELERATOR_COUNT=1'...
+    util_test.go:921: PASS: authorized sees exactly 1 accelerator device(s).
+    util_test.go:905: Waiting to see if Pod multi-container-pod/unauthorized logs contain 'RESULT: ACCELERATOR_COUNT=0'...
+    util_test.go:921: PASS: unauthorized sees exactly 0 accelerator device(s).
+    ai_conformance_test.go:28: Cleaning up namespace ai-conformance-bp2fb...
+--- PASS: TestSecureAcceleratorAccess (115.45s)
+    --- PASS: TestSecureAcceleratorAccess/PositiveAccessTest (35.54s)
+    --- PASS: TestSecureAcceleratorAccess/NegativeIsolationTest (35.58s)
+    --- PASS: TestSecureAcceleratorAccess/MultiContainerIsolationTest (35.61s)
+=== RUN   TestAIServiceMetrics
+    ai_service_metrics_test.go:133: Deploying metrics workload ai-service-metrics-8rzkx/ai-metrics-stub (run ID 45hstjjzff)...
+    ai_service_metrics_test.go:136: Configuring the monitoring system to scrape the workload...
+    ai_service_metrics_test.go:137: Created scrape configuration ConfigMap mla-system/monitoring-scraping-ai-conformance-45hstjjzff
+    ai_service_metrics_test.go:150: Waiting up to 5m0s for the monitoring system to collect the workload's metrics...
+    ai_service_metrics_test.go:155:   request count: collected (baseline 0)
+    ai_service_metrics_test.go:155:   request latency histogram count: collected (baseline 0)
+    ai_service_metrics_test.go:155:   queue depth gauge: collected (baseline 0)
+    ai_service_metrics_test.go:157: Sending 10 inference requests...
+    ai_service_metrics_test.go:160: Waiting up to 5m0s for the collected request counts to increase by 10...
+    ai_service_metrics_test.go:165:   request count: ok (10 = baseline 0 + 10)
+    ai_service_metrics_test.go:165:   request latency histogram count: ok (10 = baseline 0 + 10)
+    ai_service_metrics_test.go:165:   queue depth gauge: ok (0)
+    ai_service_metrics_test.go:166: The monitoring system collected the workload's request count, latency and queue depth metrics
+    ai_service_metrics_test.go:128: Cleaning up namespace ai-service-metrics-8rzkx...
+--- PASS: TestAIServiceMetrics (156.42s)
+=== RUN   TestParsePrometheusService
+=== RUN   TestParsePrometheusService/monitoring/prometheus-operated:9090
+=== RUN   TestParsePrometheusService/monitoring/prometheus:web
+=== RUN   TestParsePrometheusService/prometheus-operated:9090
+=== RUN   TestParsePrometheusService/monitoring/prometheus-operated
+=== RUN   TestParsePrometheusService/monitoring/prometheus-operated:
+=== RUN   TestParsePrometheusService//prometheus:9090
+=== RUN   TestParsePrometheusService/a/b/c:9090
+--- PASS: TestParsePrometheusService (0.00s)
+    --- PASS: TestParsePrometheusService/monitoring/prometheus-operated:9090 (0.00s)
+    --- PASS: TestParsePrometheusService/monitoring/prometheus:web (0.00s)
+    --- PASS: TestParsePrometheusService/prometheus-operated:9090 (0.00s)
+    --- PASS: TestParsePrometheusService/monitoring/prometheus-operated (0.00s)
+    --- PASS: TestParsePrometheusService/monitoring/prometheus-operated: (0.00s)
+    --- PASS: TestParsePrometheusService//prometheus:9090 (0.00s)
+    --- PASS: TestParsePrometheusService/a/b/c:9090 (0.00s)
+=== RUN   TestParseKeyValueLabels
+=== RUN   TestParseKeyValueLabels/two_labels
+=== RUN   TestParseKeyValueLabels/empty
+=== RUN   TestParseKeyValueLabels/missing_value_separator
+=== RUN   TestParseKeyValueLabels/empty_key
+=== RUN   TestParseKeyValueLabels/empty_pair
+--- PASS: TestParseKeyValueLabels (0.00s)
+    --- PASS: TestParseKeyValueLabels/two_labels (0.00s)
+    --- PASS: TestParseKeyValueLabels/empty (0.00s)
+    --- PASS: TestParseKeyValueLabels/missing_value_separator (0.00s)
+    --- PASS: TestParseKeyValueLabels/empty_key (0.00s)
+    --- PASS: TestParseKeyValueLabels/empty_pair (0.00s)
+=== RUN   TestParseSingleSample
+=== RUN   TestParseSingleSample/single_sample
+=== RUN   TestParseSingleSample/empty_result_before_first_scrape
+=== RUN   TestParseSingleSample/query_error
+=== RUN   TestParseSingleSample/matrix_result
+=== RUN   TestParseSingleSample/more_than_one_sample
+=== RUN   TestParseSingleSample/non-numeric_value
+=== RUN   TestParseSingleSample/not_JSON
+--- PASS: TestParseSingleSample (0.00s)
+    --- PASS: TestParseSingleSample/single_sample (0.00s)
+    --- PASS: TestParseSingleSample/empty_result_before_first_scrape (0.00s)
+    --- PASS: TestParseSingleSample/query_error (0.00s)
+    --- PASS: TestParseSingleSample/matrix_result (0.00s)
+    --- PASS: TestParseSingleSample/more_than_one_sample (0.00s)
+    --- PASS: TestParseSingleSample/non-numeric_value (0.00s)
+    --- PASS: TestParseSingleSample/not_JSON (0.00s)
+=== RUN   TestRenderScrapeManifest
+=== RUN   TestRenderScrapeManifest/multi-document_template
+=== RUN   TestRenderScrapeManifest/unknown_field
+=== RUN   TestRenderScrapeManifest/missing_kind
+=== RUN   TestRenderScrapeManifest/empty_manifest
+--- PASS: TestRenderScrapeManifest (0.00s)
+    --- PASS: TestRenderScrapeManifest/multi-document_template (0.00s)
+    --- PASS: TestRenderScrapeManifest/unknown_field (0.00s)
+    --- PASS: TestRenderScrapeManifest/missing_kind (0.00s)
+    --- PASS: TestRenderScrapeManifest/empty_manifest (0.00s)
+=== RUN   TestBuildServiceMonitor
+--- PASS: TestBuildServiceMonitor (0.00s)
+=== RUN   TestBuildMetricsWorkload
+--- PASS: TestBuildMetricsWorkload (0.00s)
+=== RUN   TestMetricExpectations
+--- PASS: TestMetricExpectations (0.00s)
+=== RUN   TestWaitForBaselines
+=== RUN   TestWaitForBaselines/series_appear_after_a_few_scrapes
+=== RUN   TestWaitForBaselines/gauge_never_collected
+--- PASS: TestWaitForBaselines (0.26s)
+    --- PASS: TestWaitForBaselines/series_appear_after_a_few_scrapes (0.06s)
+    --- PASS: TestWaitForBaselines/gauge_never_collected (0.20s)
+=== RUN   TestWaitForIncrease
+=== RUN   TestWaitForIncrease/counters_stored_relative_to_the_first_sample
+=== RUN   TestWaitForIncrease/nonzero_baseline
+=== RUN   TestWaitForIncrease/dip_below_baseline_then_recovery
+=== RUN   TestWaitForIncrease/extra_requests
+=== RUN   TestWaitForIncrease/partial_increase
+=== RUN   TestWaitForIncrease/counter_reset
+--- PASS: TestWaitForIncrease (0.41s)
+    --- PASS: TestWaitForIncrease/counters_stored_relative_to_the_first_sample (0.00s)
+    --- PASS: TestWaitForIncrease/nonzero_baseline (0.00s)
+    --- PASS: TestWaitForIncrease/dip_below_baseline_then_recovery (0.00s)
+    --- PASS: TestWaitForIncrease/extra_requests (0.00s)
+    --- PASS: TestWaitForIncrease/partial_increase (0.20s)
+    --- PASS: TestWaitForIncrease/counter_reset (0.20s)
+=== RUN   TestHTTPQuerier
+=== RUN   TestHTTPQuerier/token,_header_and_ca
+=== RUN   TestHTTPQuerier/token_file_wins_over_Authorization_header
+=== RUN   TestHTTPQuerier/wrong_token
+=== RUN   TestHTTPQuerier/no_tenant_header
+=== RUN   TestHTTPQuerier/no_ca
+=== RUN   TestHTTPQuerier/non-PEM_ca
+=== RUN   TestHTTPQuerier/missing_token_file
+2026/10/26 15:17:31 http: TLS handshake error from 127.0.0.1:60713: remote error: tls: bad certificate
+--- PASS: TestHTTPQuerier (0.05s)
+    --- PASS: TestHTTPQuerier/token,_header_and_ca (0.03s)
+    --- PASS: TestHTTPQuerier/token_file_wins_over_Authorization_header (0.00s)
+    --- PASS: TestHTTPQuerier/wrong_token (0.00s)
+    --- PASS: TestHTTPQuerier/no_tenant_header (0.00s)
+    --- PASS: TestHTTPQuerier/no_ca (0.00s)
+    --- PASS: TestHTTPQuerier/non-PEM_ca (0.00s)
+    --- PASS: TestHTTPQuerier/missing_token_file (0.00s)
+=== RUN   TestPermanentQueryError
+--- PASS: TestPermanentQueryError (0.00s)
+=== RUN   TestWaitForBaselinesQueryErrors
+=== RUN   TestWaitForBaselinesQueryErrors/client_error_fails_fast
+=== RUN   TestWaitForBaselinesQueryErrors/server_error_is_retried
+--- PASS: TestWaitForBaselinesQueryErrors (0.20s)
+    --- PASS: TestWaitForBaselinesQueryErrors/client_error_fails_fast (0.00s)
+    --- PASS: TestWaitForBaselinesQueryErrors/server_error_is_retried (0.20s)
+=== RUN   TestDeployMetricsWorkload
+--- PASS: TestDeployMetricsWorkload (0.00s)
+=== RUN   TestServiceMonitorAvailable
+--- PASS: TestServiceMonitorAvailable (0.00s)
+=== RUN   TestCheckMetricsWorkloadIntact
+=== RUN   TestCheckMetricsWorkloadIntact/running
+=== RUN   TestCheckMetricsWorkloadIntact/failed
+=== RUN   TestCheckMetricsWorkloadIntact/restarted
+=== RUN   TestCheckMetricsWorkloadIntact/deleted
+--- PASS: TestCheckMetricsWorkloadIntact (0.00s)
+    --- PASS: TestCheckMetricsWorkloadIntact/running (0.00s)
+    --- PASS: TestCheckMetricsWorkloadIntact/failed (0.00s)
+    --- PASS: TestCheckMetricsWorkloadIntact/restarted (0.00s)
+    --- PASS: TestCheckMetricsWorkloadIntact/deleted (0.00s)
+=== RUN   TestValidateMetricsFlags
+=== RUN   TestValidateMetricsFlags/defaults
+=== RUN   TestValidateMetricsFlags/service
+=== RUN   TestValidateMetricsFlags/url_with_token
+=== RUN   TestValidateMetricsFlags/url_with_headers_and_ca
+=== RUN   TestValidateMetricsFlags/both_endpoints
+=== RUN   TestValidateMetricsFlags/token_without_url
+=== RUN   TestValidateMetricsFlags/token_only
+=== RUN   TestValidateMetricsFlags/headers_without_url
+=== RUN   TestValidateMetricsFlags/ca_without_url
+=== RUN   TestValidateMetricsFlags/bad_headers
+=== RUN   TestValidateMetricsFlags/missing_ca_file
+=== RUN   TestValidateMetricsFlags/zero_timeout
+=== RUN   TestValidateMetricsFlags/missing_manifest
+=== RUN   TestValidateMetricsFlags/bad_labels
+--- PASS: TestValidateMetricsFlags (0.00s)
+    --- PASS: TestValidateMetricsFlags/defaults (0.00s)
+    --- PASS: TestValidateMetricsFlags/service (0.00s)
+    --- PASS: TestValidateMetricsFlags/url_with_token (0.00s)
+    --- PASS: TestValidateMetricsFlags/url_with_headers_and_ca (0.00s)
+    --- PASS: TestValidateMetricsFlags/both_endpoints (0.00s)
+    --- PASS: TestValidateMetricsFlags/token_without_url (0.00s)
+    --- PASS: TestValidateMetricsFlags/token_only (0.00s)
+    --- PASS: TestValidateMetricsFlags/headers_without_url (0.00s)
+    --- PASS: TestValidateMetricsFlags/ca_without_url (0.00s)
+    --- PASS: TestValidateMetricsFlags/bad_headers (0.00s)
+    --- PASS: TestValidateMetricsFlags/missing_ca_file (0.00s)
+    --- PASS: TestValidateMetricsFlags/zero_timeout (0.00s)
+    --- PASS: TestValidateMetricsFlags/missing_manifest (0.00s)
+    --- PASS: TestValidateMetricsFlags/bad_labels (0.00s)
+=== RUN   TestApplyScrapeConfigServiceMonitor
+=== RUN   TestApplyScrapeConfigServiceMonitor/apply
+    ai_service_metrics_unit_test.go:702: Created scrape configuration ServiceMonitor ai-service-metrics-abcde/ai-metrics-stub
+--- PASS: TestApplyScrapeConfigServiceMonitor (0.00s)
+    --- PASS: TestApplyScrapeConfigServiceMonitor/apply (0.00s)
+=== RUN   TestApplyScrapeConfigManifest
+=== RUN   TestApplyScrapeConfigManifest/apply
+    ai_service_metrics_unit_test.go:751: Created scrape configuration PodMonitoring ai-service-metrics-abcde/ai-metrics-stub
+    ai_service_metrics_unit_test.go:751: Created scrape configuration ConfigMap other-ns/scrape-run123
+--- PASS: TestApplyScrapeConfigManifest (0.00s)
+    --- PASS: TestApplyScrapeConfigManifest/apply (0.00s)
+=== RUN   TestDetectAllocationMode
+=== RUN   TestDetectAllocationMode/auto_prefers_DRA_when_DeviceClass_and_node-backed_slices_exist
+    util_test.go:380: Checking environment: Found ResourceSlice: node1-gpu (Node: node1, Driver: gpu.nvidia.com, Devices: 8)
+    util_test.go:305: Auto-detected allocation mode: dra
+=== RUN   TestDetectAllocationMode/auto_falls_back_to_device_plugin_on_stale_DeviceClass_without_slices
+    util_test.go:308: DRA not usable (no complete current-generation ResourceSlice with allocatable devices found for driver gpu.nvidia.com); trying device plugin...
+    util_test.go:568: Checking environment: Found Ready node node1 with allocatable nvidia.com/gpu: 8
+    util_test.go:316: Auto-detected allocation mode: device-plugin
+=== RUN   TestDetectAllocationMode/auto_falls_back_when_slices_have_no_devices
+    util_test.go:308: DRA not usable (no complete current-generation ResourceSlice with allocatable devices found for driver gpu.nvidia.com); trying device plugin...
+    util_test.go:568: Checking environment: Found Ready node node1 with allocatable nvidia.com/gpu: 8
+    util_test.go:316: Auto-detected allocation mode: device-plugin
+=== RUN   TestDetectAllocationMode/auto_falls_back_when_slices_belong_to_an_unrelated_driver
+    util_test.go:308: DRA not usable (no complete current-generation ResourceSlice with allocatable devices found for driver gpu.nvidia.com); trying device plugin...
+    util_test.go:568: Checking environment: Found Ready node node1 with allocatable nvidia.com/gpu: 8
+    util_test.go:316: Auto-detected allocation mode: device-plugin
+=== RUN   TestDetectAllocationMode/auto_falls_back_on_a_ComputeDomain-only_cluster_without_a_GPU_DeviceClass
+    util_test.go:308: DRA not usable (failed to get DeviceClass gpu.nvidia.com (is the DRA API resource.k8s.io/v1 enabled?): deviceclasses.resource.k8s.io "gpu.nvidia.com" not found); trying device plugin...
+    util_test.go:568: Checking environment: Found Ready node node1 with allocatable nvidia.com/gpu: 8
+    util_test.go:316: Auto-detected allocation mode: device-plugin
+=== RUN   TestDetectAllocationMode/auto_falls_back_when_the_only_slice-backed_node_is_NotReady
+    util_test.go:308: DRA not usable (ResourceSlices for driver gpu.nvidia.com exist, but none is reachable from a Ready, schedulable node); trying device plugin...
+    util_test.go:568: Checking environment: Found Ready node node1 with allocatable nvidia.com/gpu: 8
+    util_test.go:316: Auto-detected allocation mode: device-plugin
+=== RUN   TestDetectAllocationMode/auto_errors_when_neither_mechanism_is_usable
+    util_test.go:308: DRA not usable (failed to get DeviceClass gpu.nvidia.com (is the DRA API resource.k8s.io/v1 enabled?): deviceclasses.resource.k8s.io "gpu.nvidia.com" not found); trying device plugin...
+=== RUN   TestDetectAllocationMode/explicit_dra_succeeds_when_a_Ready_node_backs_the_slices
+    util_test.go:380: Checking environment: Found ResourceSlice: node1-gpu (Node: node1, Driver: gpu.nvidia.com, Devices: 4)
+=== RUN   TestDetectAllocationMode/explicit_dra_fails_without_DeviceClass
+=== RUN   TestDetectAllocationMode/explicit_dra_fails_when_slices_exist_but_their_node_is_NotReady
+=== RUN   TestDetectAllocationMode/explicit_dra_fails_when_the_slice's_node_does_not_exist
+=== RUN   TestDetectAllocationMode/explicit_device-plugin_succeeds_with_Ready_GPU_node
+    util_test.go:568: Checking environment: Found Ready node node1 with allocatable nvidia.com/gpu: 8
+=== RUN   TestDetectAllocationMode/explicit_device-plugin_fails_with_no_capacity
+=== RUN   TestDetectAllocationMode/explicit_device-plugin_ignores_NotReady_nodes
+=== RUN   TestDetectAllocationMode/explicit_device-plugin_ignores_unschedulable_nodes
+=== RUN   TestDetectAllocationMode/explicit_device-plugin_rejects_a_DRA-backed_extended_resource
+    util_test.go:568: Checking environment: Found Ready node node1 with allocatable nvidia.com/gpu: 8
+=== RUN   TestDetectAllocationMode/auto_fallback_rejects_a_DRA-backed_extended_resource
+    util_test.go:308: DRA not usable (no complete current-generation ResourceSlice with allocatable devices found for driver gpu.nvidia.com); trying device plugin...
+    util_test.go:568: Checking environment: Found Ready node node1 with allocatable nvidia.com/gpu: 8
+=== RUN   TestDetectAllocationMode/explicit_dra_resolves_a_nodeSelector_slice_against_a_matching_Ready_node
+    util_test.go:380: Checking environment: Found ResourceSlice: sel-gpu (Node: gpu-node, Driver: gpu.nvidia.com, Devices: 4)
+=== RUN   TestDetectAllocationMode/explicit_dra_fails_when_the_nodeSelector_matches_no_usable_node
+=== RUN   TestDetectAllocationMode/explicit_dra_resolves_an_allNodes_slice_to_a_usable_node
+    util_test.go:380: Checking environment: Found ResourceSlice: all-gpu (Node: node1, Driver: gpu.nvidia.com, Devices: 4)
+=== RUN   TestDetectAllocationMode/explicit_dra_fails_for_an_allNodes_slice_with_no_usable_nodes
+=== RUN   TestDetectAllocationMode/explicit_dra_uses_only_the_highest_pool_generation
+    util_test.go:380: Checking environment: Found ResourceSlice: gen2 (Node: node1, Driver: gpu.nvidia.com, Devices: 8)
+=== RUN   TestDetectAllocationMode/explicit_dra_ignores_devices_only_advertised_by_an_obsolete_pool_generation
+=== RUN   TestDetectAllocationMode/explicit_dra_ignores_an_incomplete_current-generation_pool
+=== RUN   TestDetectAllocationMode/explicit_dra_accepts_a_complete_multi-slice_pool
+    util_test.go:380: Checking environment: Found ResourceSlice: part1 (Node: node1, Driver: gpu.nvidia.com, Devices: 8)
+=== RUN   TestDetectAllocationMode/explicit_dra_fails_when_every_device_is_taint-blocked
+=== RUN   TestDetectAllocationMode/allNodes_slice_prefers_a_node_advertising_the_extended_resource
+    util_test.go:380: Checking environment: Found ResourceSlice: all-gpu (Node: zzz-gpu, Driver: gpu.nvidia.com, Devices: 4)
+=== RUN   TestDetectAllocationMode/explicit_dra_resolves_per-device_node_selection
+    util_test.go:380: Checking environment: Found ResourceSlice: pd-gpu (Node: node1, Driver: gpu.nvidia.com, Devices: 1)
+=== RUN   TestDetectAllocationMode/invalid_mode_value_is_rejected
+--- PASS: TestDetectAllocationMode (0.00s)
+    --- PASS: TestDetectAllocationMode/auto_prefers_DRA_when_DeviceClass_and_node-backed_slices_exist (0.00s)
+    --- PASS: TestDetectAllocationMode/auto_falls_back_to_device_plugin_on_stale_DeviceClass_without_slices (0.00s)
+    --- PASS: TestDetectAllocationMode/auto_falls_back_when_slices_have_no_devices (0.00s)
+    --- PASS: TestDetectAllocationMode/auto_falls_back_when_slices_belong_to_an_unrelated_driver (0.00s)
+    --- PASS: TestDetectAllocationMode/auto_falls_back_on_a_ComputeDomain-only_cluster_without_a_GPU_DeviceClass (0.00s)
+    --- PASS: TestDetectAllocationMode/auto_falls_back_when_the_only_slice-backed_node_is_NotReady (0.00s)
+    --- PASS: TestDetectAllocationMode/auto_errors_when_neither_mechanism_is_usable (0.00s)
+    --- PASS: TestDetectAllocationMode/explicit_dra_succeeds_when_a_Ready_node_backs_the_slices (0.00s)
+    --- PASS: TestDetectAllocationMode/explicit_dra_fails_without_DeviceClass (0.00s)
+    --- PASS: TestDetectAllocationMode/explicit_dra_fails_when_slices_exist_but_their_node_is_NotReady (0.00s)
+    --- PASS: TestDetectAllocationMode/explicit_dra_fails_when_the_slice's_node_does_not_exist (0.00s)
+    --- PASS: TestDetectAllocationMode/explicit_device-plugin_succeeds_with_Ready_GPU_node (0.00s)
+    --- PASS: TestDetectAllocationMode/explicit_device-plugin_fails_with_no_capacity (0.00s)
+    --- PASS: TestDetectAllocationMode/explicit_device-plugin_ignores_NotReady_nodes (0.00s)
+    --- PASS: TestDetectAllocationMode/explicit_device-plugin_ignores_unschedulable_nodes (0.00s)
+    --- PASS: TestDetectAllocationMode/explicit_device-plugin_rejects_a_DRA-backed_extended_resource (0.00s)
+    --- PASS: TestDetectAllocationMode/auto_fallback_rejects_a_DRA-backed_extended_resource (0.00s)
+    --- PASS: TestDetectAllocationMode/explicit_dra_resolves_a_nodeSelector_slice_against_a_matching_Ready_node (0.00s)
+    --- PASS: TestDetectAllocationMode/explicit_dra_fails_when_the_nodeSelector_matches_no_usable_node (0.00s)
+    --- PASS: TestDetectAllocationMode/explicit_dra_resolves_an_allNodes_slice_to_a_usable_node (0.00s)
+    --- PASS: TestDetectAllocationMode/explicit_dra_fails_for_an_allNodes_slice_with_no_usable_nodes (0.00s)
+    --- PASS: TestDetectAllocationMode/explicit_dra_uses_only_the_highest_pool_generation (0.00s)
+    --- PASS: TestDetectAllocationMode/explicit_dra_ignores_devices_only_advertised_by_an_obsolete_pool_generation (0.00s)
+    --- PASS: TestDetectAllocationMode/explicit_dra_ignores_an_incomplete_current-generation_pool (0.00s)
+    --- PASS: TestDetectAllocationMode/explicit_dra_accepts_a_complete_multi-slice_pool (0.00s)
+    --- PASS: TestDetectAllocationMode/explicit_dra_fails_when_every_device_is_taint-blocked (0.00s)
+    --- PASS: TestDetectAllocationMode/allNodes_slice_prefers_a_node_advertising_the_extended_resource (0.00s)
+    --- PASS: TestDetectAllocationMode/explicit_dra_resolves_per-device_node_selection (0.00s)
+    --- PASS: TestDetectAllocationMode/invalid_mode_value_is_rejected (0.00s)
+=== RUN   TestExtendedResourceGuardFailsClosed
+=== RUN   TestExtendedResourceGuardFailsClosed/API-not-served_NotFound_passes_the_guard
+    util_test.go:568: Checking environment: Found Ready node node1 with allocatable nvidia.com/gpu: 8
+=== RUN   TestExtendedResourceGuardFailsClosed/Forbidden_fails_closed
+    util_test.go:568: Checking environment: Found Ready node node1 with allocatable nvidia.com/gpu: 8
+=== RUN   TestExtendedResourceGuardFailsClosed/transient_API_error_fails_closed
+    util_test.go:568: Checking environment: Found Ready node node1 with allocatable nvidia.com/gpu: 8
+--- PASS: TestExtendedResourceGuardFailsClosed (0.00s)
+    --- PASS: TestExtendedResourceGuardFailsClosed/API-not-served_NotFound_passes_the_guard (0.00s)
+    --- PASS: TestExtendedResourceGuardFailsClosed/Forbidden_fails_closed (0.00s)
+    --- PASS: TestExtendedResourceGuardFailsClosed/transient_API_error_fails_closed (0.00s)
+=== RUN   TestLookupAcceleratorConfig
+--- PASS: TestLookupAcceleratorConfig (0.00s)
+=== RUN   TestBuildTestPod
+=== RUN   TestBuildTestPod/dra_grant_wires_the_claim_to_the_first_container_only
+=== RUN   TestBuildTestPod/device-plugin_grant_sets_the_extended_resource_on_the_first_container_only
+=== RUN   TestBuildTestPod/no_grant_leaves_both_containers_without_accelerator_requests
+=== RUN   TestBuildTestPod/nodeName_pinning_is_applied
+=== RUN   TestBuildTestPod/unknown_allocation_mode_is_rejected
+--- PASS: TestBuildTestPod (0.00s)
+    --- PASS: TestBuildTestPod/dra_grant_wires_the_claim_to_the_first_container_only (0.00s)
+    --- PASS: TestBuildTestPod/device-plugin_grant_sets_the_extended_resource_on_the_first_container_only (0.00s)
+    --- PASS: TestBuildTestPod/no_grant_leaves_both_containers_without_accelerator_requests (0.00s)
+    --- PASS: TestBuildTestPod/nodeName_pinning_is_applied (0.00s)
+    --- PASS: TestBuildTestPod/unknown_allocation_mode_is_rejected (0.00s)
+=== RUN   TestWaitForPodsRunning
+=== RUN   TestWaitForPodsRunning/returns_all_running_pods
+=== RUN   TestWaitForPodsRunning/times_out_while_a_pod_is_pending
+=== RUN   TestWaitForPodsRunning/fails_fast_on_a_permanent_API_error
+--- PASS: TestWaitForPodsRunning (0.05s)
+    --- PASS: TestWaitForPodsRunning/returns_all_running_pods (0.00s)
+    --- PASS: TestWaitForPodsRunning/times_out_while_a_pod_is_pending (0.05s)
+    --- PASS: TestWaitForPodsRunning/fails_fast_on_a_permanent_API_error (0.00s)
+=== RUN   TestPodGeneratedClaims
+=== RUN   TestPodGeneratedClaims/prefers_the_live_pod
+=== RUN   TestPodGeneratedClaims/falls_back_to_the_known_pod_when_the_live_pod_is_gone
+=== RUN   TestPodGeneratedClaims/surfaces_non-NotFound_GET_errors_while_still_using_the_known_pod
+=== RUN   TestPodGeneratedClaims/returns_nothing_when_the_pod_is_gone,_nothing_is_known,_and_no_claims_exist
+=== RUN   TestPodGeneratedClaims/scans_owned_claims_when_the_live_pod's_claim_status_is_not_yet_patched
+=== RUN   TestPodGeneratedClaims/finds_an_orphaned_claim_via_owner_reference_when_the_pod_was_never_observed
+=== RUN   TestPodGeneratedClaims/propagates_claim-list_errors_during_the_owner_scan
+--- PASS: TestPodGeneratedClaims (0.00s)
+    --- PASS: TestPodGeneratedClaims/prefers_the_live_pod (0.00s)
+    --- PASS: TestPodGeneratedClaims/falls_back_to_the_known_pod_when_the_live_pod_is_gone (0.00s)
+    --- PASS: TestPodGeneratedClaims/surfaces_non-NotFound_GET_errors_while_still_using_the_known_pod (0.00s)
+    --- PASS: TestPodGeneratedClaims/returns_nothing_when_the_pod_is_gone,_nothing_is_known,_and_no_claims_exist (0.00s)
+    --- PASS: TestPodGeneratedClaims/scans_owned_claims_when_the_live_pod's_claim_status_is_not_yet_patched (0.00s)
+    --- PASS: TestPodGeneratedClaims/finds_an_orphaned_claim_via_owner_reference_when_the_pod_was_never_observed (0.00s)
+    --- PASS: TestPodGeneratedClaims/propagates_claim-list_errors_during_the_owner_scan (0.00s)
+=== RUN   TestDeleteAndAwaitRelease
+=== RUN   TestDeleteAndAwaitRelease/waits_for_pod_deletion_and_released_claim
+=== RUN   TestDeleteAndAwaitRelease/processes_claims_even_when_the_pod_is_already_gone
+=== RUN   TestDeleteAndAwaitRelease/claim_already_garbage-collected_is_fine
+=== RUN   TestDeleteAndAwaitRelease/post-deletion_rescan_finds_a_claim_created_after_the_pre-delete_capture
+=== RUN   TestDeleteAndAwaitRelease/propagates_pod_delete_API_errors
+=== RUN   TestDeleteAndAwaitRelease/retries_transient_pod_delete_API_errors
+--- PASS: TestDeleteAndAwaitRelease (2.40s)
+    --- PASS: TestDeleteAndAwaitRelease/waits_for_pod_deletion_and_released_claim (0.00s)
+    --- PASS: TestDeleteAndAwaitRelease/processes_claims_even_when_the_pod_is_already_gone (0.20s)
+    --- PASS: TestDeleteAndAwaitRelease/claim_already_garbage-collected_is_fine (0.00s)
+    --- PASS: TestDeleteAndAwaitRelease/post-deletion_rescan_finds_a_claim_created_after_the_pre-delete_capture (0.20s)
+    --- PASS: TestDeleteAndAwaitRelease/propagates_pod_delete_API_errors (0.00s)
+    --- PASS: TestDeleteAndAwaitRelease/retries_transient_pod_delete_API_errors (2.00s)
+=== RUN   TestIsRetryableAPIError
+--- PASS: TestIsRetryableAPIError (0.00s)
+=== RUN   TestDeletePodAndWait
+--- PASS: TestDeletePodAndWait (0.00s)
+=== RUN   TestAcceleratorClusterAutoscaling
+    cluster_autoscaling_test.go:70: cluster autoscaling test is not configured; if the platform has no cluster autoscaler, mark cluster_autoscaling N/A, otherwise set -autoscaler-node-pool-label=<key>=<value>
+--- SKIP: TestAcceleratorClusterAutoscaling (0.00s)
+=== RUN   TestParseNodePoolLabel
+=== RUN   TestParseNodePoolLabel/simple_label
+=== RUN   TestParseNodePoolLabel/qualified_label
+=== RUN   TestParseNodePoolLabel/empty
+=== RUN   TestParseNodePoolLabel/missing_equals
+=== RUN   TestParseNodePoolLabel/multiple_equals
+=== RUN   TestParseNodePoolLabel/empty_key
+=== RUN   TestParseNodePoolLabel/empty_value
+=== RUN   TestParseNodePoolLabel/invalid_key
+=== RUN   TestParseNodePoolLabel/invalid_value
+--- PASS: TestParseNodePoolLabel (0.00s)
+    --- PASS: TestParseNodePoolLabel/simple_label (0.00s)
+    --- PASS: TestParseNodePoolLabel/qualified_label (0.00s)
+    --- PASS: TestParseNodePoolLabel/empty (0.00s)
+    --- PASS: TestParseNodePoolLabel/missing_equals (0.00s)
+    --- PASS: TestParseNodePoolLabel/multiple_equals (0.00s)
+    --- PASS: TestParseNodePoolLabel/empty_key (0.00s)
+    --- PASS: TestParseNodePoolLabel/empty_value (0.00s)
+    --- PASS: TestParseNodePoolLabel/invalid_key (0.00s)
+    --- PASS: TestParseNodePoolLabel/invalid_value (0.00s)
+=== RUN   TestValidateAutoscalerDurations
+=== RUN   TestValidateAutoscalerDurations/zero_pending_timeout
+=== RUN   TestValidateAutoscalerDurations/zero_scale-up_timeout
+=== RUN   TestValidateAutoscalerDurations/zero_scale-down_timeout
+=== RUN   TestValidateAutoscalerDurations/negative_stability_window
+=== RUN   TestValidateAutoscalerDurations/stability_window_equals_scale-down_timeout
+--- PASS: TestValidateAutoscalerDurations (0.00s)
+    --- PASS: TestValidateAutoscalerDurations/zero_pending_timeout (0.00s)
+    --- PASS: TestValidateAutoscalerDurations/zero_scale-up_timeout (0.00s)
+    --- PASS: TestValidateAutoscalerDurations/zero_scale-down_timeout (0.00s)
+    --- PASS: TestValidateAutoscalerDurations/negative_stability_window (0.00s)
+    --- PASS: TestValidateAutoscalerDurations/stability_window_equals_scale-down_timeout (0.00s)
+=== RUN   TestAutoscalerPodDeadlineSeconds
+--- PASS: TestAutoscalerPodDeadlineSeconds (0.00s)
+=== RUN   TestBuildAutoscalingPod
+=== RUN   TestBuildAutoscalingPod/device_plugin
+=== RUN   TestBuildAutoscalingPod/DRA
+=== RUN   TestBuildAutoscalingPod/trigger_omits_anti-affinity
+--- PASS: TestBuildAutoscalingPod (0.00s)
+    --- PASS: TestBuildAutoscalingPod/device_plugin (0.00s)
+    --- PASS: TestBuildAutoscalingPod/DRA (0.00s)
+    --- PASS: TestBuildAutoscalingPod/trigger_omits_anti-affinity (0.00s)
+=== RUN   TestReadyPoolNodes
+--- PASS: TestReadyPoolNodes (0.00s)
+=== RUN   TestPodUnschedulable
+=== RUN   TestPodUnschedulable/no_conditions
+=== RUN   TestPodUnschedulable/unschedulable
+=== RUN   TestPodUnschedulable/scheduled
+=== RUN   TestPodUnschedulable/different_reason
+--- PASS: TestPodUnschedulable (0.00s)
+    --- PASS: TestPodUnschedulable/no_conditions (0.00s)
+    --- PASS: TestPodUnschedulable/unschedulable (0.00s)
+    --- PASS: TestPodUnschedulable/scheduled (0.00s)
+    --- PASS: TestPodUnschedulable/different_reason (0.00s)
+=== RUN   TestVerifyBaselinePlacement
+=== RUN   TestVerifyBaselinePlacement/covers_every_baseline_node
+=== RUN   TestVerifyBaselinePlacement/rejects_duplicate_placement
+--- PASS: TestVerifyBaselinePlacement (0.00s)
+    --- PASS: TestVerifyBaselinePlacement/covers_every_baseline_node (0.00s)
+    --- PASS: TestVerifyBaselinePlacement/rejects_duplicate_placement (0.00s)
+=== RUN   TestSameNodeIdentitySet
+--- PASS: TestSameNodeIdentitySet (0.00s)
+=== RUN   TestVerifyPoolIsIdle
+=== RUN   TestVerifyPoolIsIdle/filters_terminal_Pods_at_the_API_server
+=== RUN   TestVerifyPoolIsIdle/ignores_test_and_DaemonSet_Pods
+=== RUN   TestVerifyPoolIsIdle/rejects_a_foreign_scheduled_Pod
+=== RUN   TestVerifyPoolIsIdle/rejects_foreign_pending_accelerator_demand
+=== RUN   TestVerifyPoolIsIdle/rejects_other_pending_target-pool_demand
+=== RUN   TestVerifyPoolIsIdle/rejects_foreign_DRA_claims_outside_the_pool
+=== RUN   TestVerifyPoolIsIdle/rejects_allocated_ResourceClaims_outside_the_test_namespace
+--- PASS: TestVerifyPoolIsIdle (0.00s)
+    --- PASS: TestVerifyPoolIsIdle/filters_terminal_Pods_at_the_API_server (0.00s)
+    --- PASS: TestVerifyPoolIsIdle/ignores_test_and_DaemonSet_Pods (0.00s)
+    --- PASS: TestVerifyPoolIsIdle/rejects_a_foreign_scheduled_Pod (0.00s)
+    --- PASS: TestVerifyPoolIsIdle/rejects_foreign_pending_accelerator_demand (0.00s)
+    --- PASS: TestVerifyPoolIsIdle/rejects_other_pending_target-pool_demand (0.00s)
+    --- PASS: TestVerifyPoolIsIdle/rejects_foreign_DRA_claims_outside_the_pool (0.00s)
+    --- PASS: TestVerifyPoolIsIdle/rejects_allocated_ResourceClaims_outside_the_test_namespace (0.00s)
+=== RUN   TestWaitForScaleDown
+=== RUN   TestWaitForScaleDown/accepts_a_retained_NotReady_Node_object
+=== RUN   TestWaitForScaleDown/rejects_a_Ready_scaled_Node_even_when_cordoned
+=== RUN   TestWaitForScaleDown/rejects_baseline_replacement
+=== RUN   TestWaitForScaleDown/rejects_a_cordoned_baseline_node
+=== RUN   TestWaitForScaleDown/rejects_an_additional_Ready_overshoot_node
+--- PASS: TestWaitForScaleDown (0.20s)
+    --- PASS: TestWaitForScaleDown/accepts_a_retained_NotReady_Node_object (0.00s)
+    --- PASS: TestWaitForScaleDown/rejects_a_Ready_scaled_Node_even_when_cordoned (0.05s)
+    --- PASS: TestWaitForScaleDown/rejects_baseline_replacement (0.05s)
+    --- PASS: TestWaitForScaleDown/rejects_a_cordoned_baseline_node (0.05s)
+    --- PASS: TestWaitForScaleDown/rejects_an_additional_Ready_overshoot_node (0.05s)
+=== RUN   TestVerifyAutoscalerPoolCapacityRejectsDRABackedExtendedResource
+--- PASS: TestVerifyAutoscalerPoolCapacityRejectsDRABackedExtendedResource (0.00s)
+=== RUN   TestCreateBaselinePDB
+--- PASS: TestCreateBaselinePDB (0.00s)
+=== RUN   TestRobustCRDControllerOperation
+=== RUN   TestRobustCRDControllerOperation/OperatorPodsRunning
+    crd_controller_test.go:136: Verifying operator pods are Ready in namespace kubeflow-system (selector: app.kubernetes.io/name=kubeflow-trainer)...
+    crd_controller_test.go:136: PASS: 1 operator pod(s) are Ready in namespace kubeflow-system
+=== RUN   TestRobustCRDControllerOperation/CRDRegistered
+    crd_controller_test.go:140: Verifying CRD trainjobs.trainer.kubeflow.org is registered and Established...
+    crd_controller_test.go:140: PASS: CRD trainjobs.trainer.kubeflow.org is registered and Established
+=== RUN   TestRobustCRDControllerOperation/WebhookOperational
+    crd_controller_test.go:144: Verifying ValidatingWebhookConfiguration validator.trainer.kubeflow.org exists...
+    crd_controller_test.go:144:   Webhook: validator.clustertrainingruntime.trainer.kubeflow.org (rules: 1, caBundle: 1208 bytes)
+    crd_controller_test.go:144:   Webhook: validator.trainingruntime.trainer.kubeflow.org (rules: 1, caBundle: 1208 bytes)
+    crd_controller_test.go:144:   Webhook: validator.trainjob.trainer.kubeflow.org (rules: 1, caBundle: 1208 bytes)
+    crd_controller_test.go:144: PASS: ValidatingWebhookConfiguration validator.trainer.kubeflow.org exists with 3 webhook(s)
+=== RUN   TestRobustCRDControllerOperation/WebhookRejectsInvalidCR
+    crd_controller_test.go:148: Submitting invalid CR to verify webhook rejection...
+    crd_controller_test.go:148: PASS: Webhook correctly rejected invalid CR: admission webhook "vtrainjob.kb.io" denied the request: runtime 'does-not-exist-runtime' not found
+=== RUN   TestRobustCRDControllerOperation/ControllerReconcilesCR
+    crd_controller_test.go:152: Verifying runtime torch-distributed exists...
+    crd_controller_test.go:152: Creating valid CR valid-cr...
+    crd_controller_test.go:152: Waiting for controller to reconcile CR valid-cr...
+    crd_controller_test.go:397:   CR condition: type=Complete, status=True, reason=AllJobsCompleted
+    crd_controller_test.go:152: PASS: Controller reconciled CR valid-cr
+    crd_controller_test.go:314: Cleaning up CR valid-cr...
+    crd_controller_test.go:130: Cleaning up namespace crd-controller-xrk9j...
+--- PASS: TestRobustCRDControllerOperation (13.85s)
+    --- PASS: TestRobustCRDControllerOperation/OperatorPodsRunning (0.05s)
+    --- PASS: TestRobustCRDControllerOperation/CRDRegistered (0.14s)
+    --- PASS: TestRobustCRDControllerOperation/WebhookOperational (0.05s)
+    --- PASS: TestRobustCRDControllerOperation/WebhookRejectsInvalidCR (0.17s)
+    --- PASS: TestRobustCRDControllerOperation/ControllerReconcilesCR (5.23s)
+=== RUN   TestVerifyCRDEstablished
+=== RUN   TestVerifyCRDEstablished/established_CRD
+=== RUN   TestVerifyCRDEstablished/not_established_CRD
+=== RUN   TestVerifyCRDEstablished/no_conditions
+=== RUN   TestVerifyCRDEstablished/no_status
+=== RUN   TestVerifyCRDEstablished/multiple_conditions_with_Established
+--- PASS: TestVerifyCRDEstablished (0.00s)
+    --- PASS: TestVerifyCRDEstablished/established_CRD (0.00s)
+    --- PASS: TestVerifyCRDEstablished/not_established_CRD (0.00s)
+    --- PASS: TestVerifyCRDEstablished/no_conditions (0.00s)
+    --- PASS: TestVerifyCRDEstablished/no_status (0.00s)
+    --- PASS: TestVerifyCRDEstablished/multiple_conditions_with_Established (0.00s)
+=== RUN   TestBuildInvalidTrainJob
+--- PASS: TestBuildInvalidTrainJob (0.00s)
+=== RUN   TestBuildValidTrainJob
+--- PASS: TestBuildValidTrainJob (0.00s)
+=== RUN   TestIsAdmissionDenied
+=== RUN   TestIsAdmissionDenied/nil_error
+=== RUN   TestIsAdmissionDenied/non-status_error
+=== RUN   TestIsAdmissionDenied/webhook_denial_status_error
+=== RUN   TestIsAdmissionDenied/not_found_status_error
+--- PASS: TestIsAdmissionDenied (0.00s)
+    --- PASS: TestIsAdmissionDenied/nil_error (0.00s)
+    --- PASS: TestIsAdmissionDenied/non-status_error (0.00s)
+    --- PASS: TestIsAdmissionDenied/webhook_denial_status_error (0.00s)
+    --- PASS: TestIsAdmissionDenied/not_found_status_error (0.00s)
+=== RUN   TestAcceleratorProbeCommand
+=== RUN   TestAcceleratorProbeCommand/counts_matching_device_nodes
+=== RUN   TestAcceleratorProbeCommand/no_matching_device_nodes
+--- PASS: TestAcceleratorProbeCommand (0.02s)
+    --- PASS: TestAcceleratorProbeCommand/counts_matching_device_nodes (0.01s)
+    --- PASS: TestAcceleratorProbeCommand/no_matching_device_nodes (0.01s)
+=== RUN   TestLogsContainExactLine
+=== RUN   TestLogsContainExactLine/exact_count
+=== RUN   TestLogsContainExactLine/surrounding_whitespace
+=== RUN   TestLogsContainExactLine/over-allocation_is_not_a_substring_match
+=== RUN   TestLogsContainExactLine/different_count
+=== RUN   TestLogsContainExactLine/missing_result
+--- PASS: TestLogsContainExactLine (0.00s)
+    --- PASS: TestLogsContainExactLine/exact_count (0.00s)
+    --- PASS: TestLogsContainExactLine/surrounding_whitespace (0.00s)
+    --- PASS: TestLogsContainExactLine/over-allocation_is_not_a_substring_match (0.00s)
+    --- PASS: TestLogsContainExactLine/different_count (0.00s)
+    --- PASS: TestLogsContainExactLine/missing_result (0.00s)
+=== RUN   TestAcceleratorDriverRuntimeManagement
+    util_test.go:308: DRA not usable (failed to get DeviceClass gpu.nvidia.com (is the DRA API resource.k8s.io/v1 enabled?): deviceclasses.resource.k8s.io "gpu.nvidia.com" not found); trying device plugin...
+    util_test.go:568: Checking environment: Found Ready node ip-172-31-3-8.eu-central-1.compute.internal with allocatable nvidia.com/gpu: 1
+    util_test.go:316: Auto-detected allocation mode: device-plugin
+    driver_runtime_management_test.go:172: Accelerator driver & runtime management test running with allocation mode: device-plugin
+    util_test.go:704: Waiting for Pod driver-runtime-probe-pod to be running...
+=== RUN   TestAcceleratorDriverRuntimeManagement/VerifiableMechanismExposed
+    driver_runtime_management_test.go:202: PASS: node ip-172-31-3-8.eu-central-1.compute.internal advertises driver version "580.126.20" via node-metadata [nvidia.com/cuda.driver-version.full]
+=== RUN   TestAcceleratorDriverRuntimeManagement/DriverAndRuntimeCompatibility
+    driver_runtime_management_test.go:215: PASS: container runtime configuration and accelerator driver verified on node ip-172-31-3-8.eu-central-1.compute.internal (observed driver=580.126.20; advertised via node-metadata: "580.126.20")
+    driver_runtime_management_test.go:176: Cleaning up namespace ai-conformance-driver-runtime-js7ts...
+--- PASS: TestAcceleratorDriverRuntimeManagement (47.75s)
+    --- PASS: TestAcceleratorDriverRuntimeManagement/VerifiableMechanismExposed (0.15s)
+    --- PASS: TestAcceleratorDriverRuntimeManagement/DriverAndRuntimeCompatibility (0.06s)
+=== RUN   TestInspectPlatformDriverRuntimeMechanism
+=== RUN   TestInspectPlatformDriverRuntimeMechanism/dra:_driver_version_comes_from_ResourceSlice_attributes
+=== RUN   TestInspectPlatformDriverRuntimeMechanism/dra:_missing_driver_attribute_falls_back_to_node_labels_and_warns
+=== RUN   TestInspectPlatformDriverRuntimeMechanism/dra:_no_usable_devices_on_the_node_is_an_environment_error
+=== RUN   TestInspectPlatformDriverRuntimeMechanism/dra:_ResourceSlice_list_failure_is_an_error
+=== RUN   TestInspectPlatformDriverRuntimeMechanism/dra:_only_the_highest_pool_generation_is_consulted
+=== RUN   TestInspectPlatformDriverRuntimeMechanism/dra:_per-device_node_selection_only_consults_this_node's_devices
+=== RUN   TestInspectPlatformDriverRuntimeMechanism/device-plugin:_driver_version_comes_from_node_labels
+=== RUN   TestInspectPlatformDriverRuntimeMechanism/device-plugin:_node_annotations_are_accepted
+=== RUN   TestInspectPlatformDriverRuntimeMechanism/device-plugin:_DRA_attributes_are_preferred_over_node_labels
+=== RUN   TestInspectPlatformDriverRuntimeMechanism/device-plugin:_no_version_metadata_warns
+=== RUN   TestInspectPlatformDriverRuntimeMechanism/device-plugin:_DRA_API_not_served_falls_back_quietly
+--- PASS: TestInspectPlatformDriverRuntimeMechanism (0.00s)
+    --- PASS: TestInspectPlatformDriverRuntimeMechanism/dra:_driver_version_comes_from_ResourceSlice_attributes (0.00s)
+    --- PASS: TestInspectPlatformDriverRuntimeMechanism/dra:_missing_driver_attribute_falls_back_to_node_labels_and_warns (0.00s)
+    --- PASS: TestInspectPlatformDriverRuntimeMechanism/dra:_no_usable_devices_on_the_node_is_an_environment_error (0.00s)
+    --- PASS: TestInspectPlatformDriverRuntimeMechanism/dra:_ResourceSlice_list_failure_is_an_error (0.00s)
+    --- PASS: TestInspectPlatformDriverRuntimeMechanism/dra:_only_the_highest_pool_generation_is_consulted (0.00s)
+    --- PASS: TestInspectPlatformDriverRuntimeMechanism/dra:_per-device_node_selection_only_consults_this_node's_devices (0.00s)
+    --- PASS: TestInspectPlatformDriverRuntimeMechanism/device-plugin:_driver_version_comes_from_node_labels (0.00s)
+    --- PASS: TestInspectPlatformDriverRuntimeMechanism/device-plugin:_node_annotations_are_accepted (0.00s)
+    --- PASS: TestInspectPlatformDriverRuntimeMechanism/device-plugin:_DRA_attributes_are_preferred_over_node_labels (0.00s)
+    --- PASS: TestInspectPlatformDriverRuntimeMechanism/device-plugin:_no_version_metadata_warns (0.00s)
+    --- PASS: TestInspectPlatformDriverRuntimeMechanism/device-plugin:_DRA_API_not_served_falls_back_quietly (0.00s)
+=== RUN   TestVersionsCompatible
+=== RUN   TestVersionsCompatible/"580.65.06"_vs_"580.65.06"
+=== RUN   TestVersionsCompatible/"580.65.6"_vs_"580.65.06"
+=== RUN   TestVersionsCompatible/"580.65"_vs_"580.65.06"
+=== RUN   TestVersionsCompatible/"580"_vs_"580.65.06"
+=== RUN   TestVersionsCompatible/"v580.65.06"_vs_"580.65.06"
+=== RUN   TestVersionsCompatible/"580.65.06-rc1"_vs_"580.65.06"
+=== RUN   TestVersionsCompatible/"550.54.14"_vs_"580.65.06"
+=== RUN   TestVersionsCompatible/"580.65.07"_vs_"580.65.06"
+=== RUN   TestVersionsCompatible/"N/A"_vs_"580.65.06"
+=== RUN   TestVersionsCompatible/"N/A"_vs_"n/a"
+=== RUN   TestVersionsCompatible/""_vs_""
+=== RUN   TestVersionsCompatible/""_vs_"580.65.06"
+--- PASS: TestVersionsCompatible (0.00s)
+    --- PASS: TestVersionsCompatible/"580.65.06"_vs_"580.65.06" (0.00s)
+    --- PASS: TestVersionsCompatible/"580.65.6"_vs_"580.65.06" (0.00s)
+    --- PASS: TestVersionsCompatible/"580.65"_vs_"580.65.06" (0.00s)
+    --- PASS: TestVersionsCompatible/"580"_vs_"580.65.06" (0.00s)
+    --- PASS: TestVersionsCompatible/"v580.65.06"_vs_"580.65.06" (0.00s)
+    --- PASS: TestVersionsCompatible/"580.65.06-rc1"_vs_"580.65.06" (0.00s)
+    --- PASS: TestVersionsCompatible/"550.54.14"_vs_"580.65.06" (0.00s)
+    --- PASS: TestVersionsCompatible/"580.65.07"_vs_"580.65.06" (0.00s)
+    --- PASS: TestVersionsCompatible/"N/A"_vs_"580.65.06" (0.00s)
+    --- PASS: TestVersionsCompatible/"N/A"_vs_"n/a" (0.00s)
+    --- PASS: TestVersionsCompatible/""_vs_"" (0.00s)
+    --- PASS: TestVersionsCompatible/""_vs_"580.65.06" (0.00s)
+=== RUN   TestParseDriverRuntimeProbeLogs
+=== RUN   TestParseDriverRuntimeProbeLogs/complete_output
+=== RUN   TestParseDriverRuntimeProbeLogs/partial_output_is_incomplete
+=== RUN   TestParseDriverRuntimeProbeLogs/empty_output_is_incomplete
+--- PASS: TestParseDriverRuntimeProbeLogs (0.00s)
+    --- PASS: TestParseDriverRuntimeProbeLogs/complete_output (0.00s)
+    --- PASS: TestParseDriverRuntimeProbeLogs/partial_output_is_incomplete (0.00s)
+    --- PASS: TestParseDriverRuntimeProbeLogs/empty_output_is_incomplete (0.00s)
+=== RUN   TestVerifyDriverRuntimeCompatibility
+=== RUN   TestVerifyDriverRuntimeCompatibility/healthy_stack_matches_advertised_version
+=== RUN   TestVerifyDriverRuntimeCompatibility/no_advertised_version_skips_the_cross-check
+=== RUN   TestVerifyDriverRuntimeCompatibility/wrong_device_count
+=== RUN   TestVerifyDriverRuntimeCompatibility/missing_device_count
+=== RUN   TestVerifyDriverRuntimeCompatibility/tools_not_injected
+=== RUN   TestVerifyDriverRuntimeCompatibility/driver_not_functional
+=== RUN   TestVerifyDriverRuntimeCompatibility/driver_version_mismatch
+--- PASS: TestVerifyDriverRuntimeCompatibility (0.00s)
+    --- PASS: TestVerifyDriverRuntimeCompatibility/healthy_stack_matches_advertised_version (0.00s)
+    --- PASS: TestVerifyDriverRuntimeCompatibility/no_advertised_version_skips_the_cross-check (0.00s)
+    --- PASS: TestVerifyDriverRuntimeCompatibility/wrong_device_count (0.00s)
+    --- PASS: TestVerifyDriverRuntimeCompatibility/missing_device_count (0.00s)
+    --- PASS: TestVerifyDriverRuntimeCompatibility/tools_not_injected (0.00s)
+    --- PASS: TestVerifyDriverRuntimeCompatibility/driver_not_functional (0.00s)
+    --- PASS: TestVerifyDriverRuntimeCompatibility/driver_version_mismatch (0.00s)
+=== RUN   TestNVIDIADriverProbeScript
+=== RUN   TestNVIDIADriverProbeScript/healthy_driver_stack
+=== RUN   TestNVIDIADriverProbeScript/NVML_failure_is_not_a_functional_driver
+=== RUN   TestNVIDIADriverProbeScript/no_accelerator_devices
+=== RUN   TestNVIDIADriverProbeScript/nvidia-smi_not_injected
+--- PASS: TestNVIDIADriverProbeScript (0.62s)
+    --- PASS: TestNVIDIADriverProbeScript/healthy_driver_stack (0.40s)
+    --- PASS: TestNVIDIADriverProbeScript/NVML_failure_is_not_a_functional_driver (0.20s)
+    --- PASS: TestNVIDIADriverProbeScript/no_accelerator_devices (0.01s)
+    --- PASS: TestNVIDIADriverProbeScript/nvidia-smi_not_injected (0.01s)
+=== RUN   TestGangScheduling
+=== RUN   TestGangScheduling/PositiveGangScheduling
+    gang_scheduling_test.go:71: Creating positive test job pos-job...
+    gang_scheduling_test.go:158: Waiting for positive job pos-job to complete...
+    gang_scheduling_test.go:180: Verifying scheduling evidence for completed job pos-job...
+    gang_scheduling_test.go:215:   Pod pos-job-5rvvj: schedulerName=default-scheduler, nodeName=ip-172-31-3-8.eu-central-1.compute.internal, phase=Succeeded
+    gang_scheduling_test.go:215:   Pod pos-job-pn5lq: schedulerName=default-scheduler, nodeName=ip-172-31-3-8.eu-central-1.compute.internal, phase=Succeeded
+    gang_scheduling_test.go:219: Positive job pos-job completed with 2 pods verified
+=== RUN   TestGangScheduling/NegativeGangScheduling
+    gang_scheduling_test.go:92: Creating negative test job neg-job...
+    gang_scheduling_test.go:225: Verifying negative job neg-job remains suspended or pending without partial pods for 30s...
+    gang_scheduling_test.go:257: Negative job neg-job successfully remained suspended or pending with 0 bound pods throughout the 30s verification window.
+--- PASS: TestGangScheduling (42.45s)
+    --- PASS: TestGangScheduling/PositiveGangScheduling (12.29s)
+    --- PASS: TestGangScheduling/NegativeGangScheduling (30.16s)
+=== RUN   TestApplyGangSchedulerAdapter
+=== RUN   TestApplyGangSchedulerAdapter/kueue_is_a_no-op
+=== RUN   TestApplyGangSchedulerAdapter/empty_string_returns_error
+=== RUN   TestApplyGangSchedulerAdapter/invalid_name_returns_error
+--- PASS: TestApplyGangSchedulerAdapter (0.00s)
+    --- PASS: TestApplyGangSchedulerAdapter/kueue_is_a_no-op (0.00s)
+    --- PASS: TestApplyGangSchedulerAdapter/empty_string_returns_error (0.00s)
+    --- PASS: TestApplyGangSchedulerAdapter/invalid_name_returns_error (0.00s)
+=== RUN   TestApplyVolcanoAdapter
+    gang_scheduling_unit_test.go:95: Applying Volcano adapter for job test-volcano-job...
+    gang_scheduling_test.go:330: Cleaning up Volcano PodGroup test-volcano-job...
+--- PASS: TestApplyVolcanoAdapter (0.00s)
+=== RUN   TestRegisteredFlagGroupsMatchFlags
+--- PASS: TestRegisteredFlagGroupsMatchFlags (0.00s)
+=== RUN   TestWorkloadSandboxing
+    workload_sandboxing_test.go:90: Skipping workload sandboxing test: no known sandboxed RuntimeClass found. Specify -sandbox-runtime-class to run. Platforms where workload sandboxing is not supported may leave the flag unset to opt out.
+--- SKIP: TestWorkloadSandboxing (0.05s)
+=== RUN   TestParseProbeLogs
+=== RUN   TestParseProbeLogs/full_pass
+=== RUN   TestParseProbeLogs/pid_isolation_failure_and_unreadable_boot_id
+=== RUN   TestParseProbeLogs/network,_kernel_and_fs_failure
+=== RUN   TestParseProbeLogs/probe_died_before_completing
+=== RUN   TestParseProbeLogs/empty_logs
+--- PASS: TestParseProbeLogs (0.00s)
+    --- PASS: TestParseProbeLogs/full_pass (0.00s)
+    --- PASS: TestParseProbeLogs/pid_isolation_failure_and_unreadable_boot_id (0.00s)
+    --- PASS: TestParseProbeLogs/network,_kernel_and_fs_failure (0.00s)
+    --- PASS: TestParseProbeLogs/probe_died_before_completing (0.00s)
+    --- PASS: TestParseProbeLogs/empty_logs (0.00s)
+=== RUN   TestSandboxProbeScriptRuns
+--- PASS: TestSandboxProbeScriptRuns (0.05s)
+=== RUN   TestKernelIdentitiesDiffer
+=== RUN   TestKernelIdentitiesDiffer/gVisor_reports_its_own_kernel_release,_version_and_boot_id
+=== RUN   TestKernelIdentitiesDiffer/Kata_guest_with_the_same_kernel_release_still_has_a_different_boot_id
+=== RUN   TestKernelIdentitiesDiffer/plain_runc_container_shares_the_host_kernel_identity
+=== RUN   TestKernelIdentitiesDiffer/unreadable_fields_are_ignored_rather_than_counted_as_different
+=== RUN   TestKernelIdentitiesDiffer/release_alone_is_enough_when_nothing_else_is_readable
+--- PASS: TestKernelIdentitiesDiffer (0.00s)
+    --- PASS: TestKernelIdentitiesDiffer/gVisor_reports_its_own_kernel_release,_version_and_boot_id (0.00s)
+    --- PASS: TestKernelIdentitiesDiffer/Kata_guest_with_the_same_kernel_release_still_has_a_different_boot_id (0.00s)
+    --- PASS: TestKernelIdentitiesDiffer/plain_runc_container_shares_the_host_kernel_identity (0.00s)
+    --- PASS: TestKernelIdentitiesDiffer/unreadable_fields_are_ignored_rather_than_counted_as_different (0.00s)
+    --- PASS: TestKernelIdentitiesDiffer/release_alone_is_enough_when_nothing_else_is_readable (0.00s)
+=== RUN   TestIsKnownSandboxedRuntime
+=== RUN   TestIsKnownSandboxedRuntime/gvisor_by_name
+=== RUN   TestIsKnownSandboxedRuntime/runsc_by_handler
+=== RUN   TestIsKnownSandboxedRuntime/kata_by_name
+=== RUN   TestIsKnownSandboxedRuntime/kata-qemu_by_name
+=== RUN   TestIsKnownSandboxedRuntime/kata-clh_by_name
+=== RUN   TestIsKnownSandboxedRuntime/AKS_pod_sandboxing
+=== RUN   TestIsKnownSandboxedRuntime/sandboxed_containers
+=== RUN   TestIsKnownSandboxedRuntime/quark_runtime
+=== RUN   TestIsKnownSandboxedRuntime/krun_runtime
+=== RUN   TestIsKnownSandboxedRuntime/crun-krun_handler
+=== RUN   TestIsKnownSandboxedRuntime/standard_runc
+=== RUN   TestIsKnownSandboxedRuntime/crun_runtime
+=== RUN   TestIsKnownSandboxedRuntime/default_runtime
+=== RUN   TestIsKnownSandboxedRuntime/nil_runtimeclass
+--- PASS: TestIsKnownSandboxedRuntime (0.00s)
+    --- PASS: TestIsKnownSandboxedRuntime/gvisor_by_name (0.00s)
+    --- PASS: TestIsKnownSandboxedRuntime/runsc_by_handler (0.00s)
+    --- PASS: TestIsKnownSandboxedRuntime/kata_by_name (0.00s)
+    --- PASS: TestIsKnownSandboxedRuntime/kata-qemu_by_name (0.00s)
+    --- PASS: TestIsKnownSandboxedRuntime/kata-clh_by_name (0.00s)
+    --- PASS: TestIsKnownSandboxedRuntime/AKS_pod_sandboxing (0.00s)
+    --- PASS: TestIsKnownSandboxedRuntime/sandboxed_containers (0.00s)
+    --- PASS: TestIsKnownSandboxedRuntime/quark_runtime (0.00s)
+    --- PASS: TestIsKnownSandboxedRuntime/krun_runtime (0.00s)
+    --- PASS: TestIsKnownSandboxedRuntime/crun-krun_handler (0.00s)
+    --- PASS: TestIsKnownSandboxedRuntime/standard_runc (0.00s)
+    --- PASS: TestIsKnownSandboxedRuntime/crun_runtime (0.00s)
+    --- PASS: TestIsKnownSandboxedRuntime/default_runtime (0.00s)
+    --- PASS: TestIsKnownSandboxedRuntime/nil_runtimeclass (0.00s)
+=== RUN   TestBuildProbePod
+--- PASS: TestBuildProbePod (0.00s)
+=== RUN   TestResolveSandboxedRuntimeClass
+=== RUN   TestResolveSandboxedRuntimeClass/auto-detects_a_known_RuntimeClass
+    workload_sandboxing_test.go:193: Discovered sandboxed RuntimeClass "kata" (handler: kata-qemu)
+=== RUN   TestResolveSandboxedRuntimeClass/explicit_RuntimeClass_is_used_even_if_not_a_known_name
+    workload_sandboxing_test.go:182: Found specified sandboxed RuntimeClass "custom-sandbox" (handler: custom-handler)
+=== RUN   TestResolveSandboxedRuntimeClass/explicit_RuntimeClass_fails_when_missing
+=== RUN   TestResolveSandboxedRuntimeClass/returns_errNoSandboxedRuntimeClass_when_none_detected
+--- PASS: TestResolveSandboxedRuntimeClass (0.00s)
+    --- PASS: TestResolveSandboxedRuntimeClass/auto-detects_a_known_RuntimeClass (0.00s)
+    --- PASS: TestResolveSandboxedRuntimeClass/explicit_RuntimeClass_is_used_even_if_not_a_known_name (0.00s)
+    --- PASS: TestResolveSandboxedRuntimeClass/explicit_RuntimeClass_fails_when_missing (0.00s)
+    --- PASS: TestResolveSandboxedRuntimeClass/returns_errNoSandboxedRuntimeClass_when_none_detected (0.00s)
+PASS
+ok  	github.com/kubernetes-sigs/ai-conformance/test	380.709s
