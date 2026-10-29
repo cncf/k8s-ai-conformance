@@ -454,6 +454,8 @@ func TestCheckArtifactEvidence_ImplicitTest(t *testing.T) {
 	errs = checkArtifactEvidence(ref, artifactGoTestJSON, "results.json", "cluster_autoscaling", "Implemented", reports)
 	if len(errs) != 1 || !strings.Contains(errs[0], "was skipped") {
 		t.Errorf("skipped implicit test + Implemented: errors=%v, want one skip error", errs)
+	} else if !strings.Contains(errs[0], "cite documentation as evidence") || !strings.Contains(errs[0], upstreamTestSuiteURL) {
+		t.Errorf("skipped implicit test + Implemented: error=%q, want manual-evidence and upstream test suite hints", errs[0])
 	}
 
 	errs = checkArtifactEvidence(ref, artifactGoTestJSON, "results.json", "cluster_autoscaling", "N/A", reports)
