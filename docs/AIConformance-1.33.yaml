@@ -10,7 +10,7 @@ metadata:
   websiteUrl: "[Website URL]"
   repoUrl: "[Repository URL]"
   documentationUrl: "[Documentation URL]"
-  productLogoUrl: "[Documentation URL]"
+  productLogoUrl: "[Product Logo URL, optional]"
   description: "[Description]"
   contactEmailAddress: "[Contact Email Address]"
 

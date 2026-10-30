@@ -140,7 +140,7 @@ var metadataFields = map[string]bool{
 	"websiteUrl":          true,
 	"repoUrl":             false, // Optional
 	"documentationUrl":    true,
-	"productLogoUrl":      true,
+	"productLogoUrl":      false, // Optional
 	"description":         true,
 	"contactEmailAddress": true,
 	"k8sConformanceUrl":   true, // Required: URL to k8s-conformance submission

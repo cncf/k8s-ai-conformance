@@ -10,7 +10,7 @@ metadata:
   websiteUrl: "[Website URL]"
   repoUrl: "[Repository URL]"
   documentationUrl: "[Documentation URL]"
-  productLogoUrl: "[Documentation URL]"
+  productLogoUrl: "[Product Logo URL, optional]"
   description: "[Description]"
   contactEmailAddress: "[Contact Email Address]"
   k8sConformanceUrl: "[URL to k8s-conformance submission, e.g., https://github.com/cncf/k8s-conformance/tree/master/v1.35/product-name]"
