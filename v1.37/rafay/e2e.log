@@ -1,0 +1,118 @@
+go: downloading gotest.tools/gotestsum v1.13.0
+go: downloading gotest.tools v2.2.0+incompatible
+go: downloading github.com/dnephin/pflag v1.0.7
+go: downloading golang.org/x/tools v0.36.0
+go: downloading github.com/fatih/color v1.18.0
+go: downloading github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510
+go: downloading github.com/bitfield/gotestdox v0.2.2
+go: downloading golang.org/x/sync v0.17.0
+go: downloading golang.org/x/term v0.35.0
+go: downloading github.com/mattn/go-colorable v0.1.13
+go: downloading github.com/mattn/go-isatty v0.0.20
+go: downloading github.com/fsnotify/fsnotify v1.9.0
+go: downloading golang.org/x/sys v0.36.0
+go: downloading golang.org/x/text v0.17.0
+go: downloading golang.org/x/mod v0.27.0
+=== RUN   TestAcceleratorPerformanceMetrics
+=== RUN   TestAcceleratorPerformanceMetrics/MetricsEndpointReachable
+    accelerator_metrics_test.go:92: PASS: Metrics endpoint ai-conformance/nvidia-dcgm-exporter returned 20 metric samples
+--- PASS: TestAcceleratorPerformanceMetrics/MetricsEndpointReachable (0.00s)
+=== RUN   TestAcceleratorPerformanceMetrics/PerAcceleratorUtilizationMetric
+    accelerator_metrics_test.go:96: PASS: Found per-accelerator utilization metric(s): [DCGM_FI_DEV_GPU_UTIL] (1 samples)
+--- PASS: TestAcceleratorPerformanceMetrics/PerAcceleratorUtilizationMetric (0.00s)
+=== RUN   TestAcceleratorPerformanceMetrics/PerAcceleratorMemoryMetric
+    accelerator_metrics_test.go:100: PASS: Found per-accelerator memory metric(s): [DCGM_FI_DEV_FB_USED] (1 samples)
+--- PASS: TestAcceleratorPerformanceMetrics/PerAcceleratorMemoryMetric (0.00s)
+=== RUN   TestAcceleratorPerformanceMetrics/OptionalMetrics
+    accelerator_metrics_test.go:104: PASS (SHOULD): Found per-accelerator temperature metric (2 samples)
+    accelerator_metrics_test.go:104: PASS (SHOULD): Found per-accelerator power metric (2 samples)
+    accelerator_metrics_test.go:104: PASS (SHOULD): Found per-accelerator interconnect bandwidth metric (2 samples)
+--- PASS: TestAcceleratorPerformanceMetrics/OptionalMetrics (0.00s)
+--- PASS: TestAcceleratorPerformanceMetrics (0.02s)
+=== RUN   TestSecureAcceleratorAccess
+    util_test.go:400: Checking environment: Found ResourceSlice: 00000-gpu.nvidia.com-ip-10-200-2-43-rbz4l (Node: ip-10-200-2-43, Driver: gpu.nvidia.com, Devices: 1)
+    util_test.go:272: Secure accelerator access test running with allocation mode: dra (accelerator node: ip-10-200-2-43)
+=== RUN   TestSecureAcceleratorAccess/PositiveAccessTest
+    util_test.go:724: Waiting for Pod pos-pod to be running...
+    util_test.go:925: Waiting to see if Pod pos-pod/prober logs contain 'RESULT: ACCELERATOR_COUNT=1'...
+    util_test.go:941: PASS: prober sees exactly 1 accelerator device(s).
+--- PASS: TestSecureAcceleratorAccess/PositiveAccessTest (35.04s)
+=== RUN   TestSecureAcceleratorAccess/NegativeIsolationTest
+    util_test.go:724: Waiting for Pod neg-pod to be running...
+    util_test.go:925: Waiting to see if Pod neg-pod/prober logs contain 'RESULT: ACCELERATOR_COUNT=0'...
+    util_test.go:941: PASS: prober sees exactly 0 accelerator device(s).
+--- PASS: TestSecureAcceleratorAccess/NegativeIsolationTest (35.04s)
+=== RUN   TestSecureAcceleratorAccess/MultiContainerIsolationTest
+    util_test.go:724: Waiting for Pod multi-container-pod to be running...
+    util_test.go:925: Waiting to see if Pod multi-container-pod/authorized logs contain 'RESULT: ACCELERATOR_COUNT=1'...
+    util_test.go:941: PASS: authorized sees exactly 1 accelerator device(s).
+    util_test.go:925: Waiting to see if Pod multi-container-pod/unauthorized logs contain 'RESULT: ACCELERATOR_COUNT=0'...
+    util_test.go:941: PASS: unauthorized sees exactly 0 accelerator device(s).
+--- PASS: TestSecureAcceleratorAccess/MultiContainerIsolationTest (35.04s)
+    ai_conformance_test.go:28: Cleaning up namespace ai-conformance-pdpvd...
+--- PASS: TestSecureAcceleratorAccess (111.14s)
+=== RUN   TestAIServiceMetrics
+    ai_service_metrics_test.go:133: Deploying metrics workload ai-service-metrics-zmmh4/ai-metrics-stub (run ID 4gd9tq8rz9)...
+    ai_service_metrics_test.go:136: Configuring the monitoring system to scrape the workload...
+    ai_service_metrics_test.go:137: Created scrape configuration Service ai-service-metrics-zmmh4/ai-metrics-stub-scrape
+    ai_service_metrics_test.go:150: Waiting up to 10m0s for the monitoring system to collect the workload's metrics...
+    ai_service_metrics_test.go:155:   request count: collected (baseline 0)
+    ai_service_metrics_test.go:155:   request latency histogram count: collected (baseline 0)
+    ai_service_metrics_test.go:155:   queue depth gauge: collected (baseline 0)
+    ai_service_metrics_test.go:157: Sending 10 inference requests...
+    ai_service_metrics_test.go:160: Waiting up to 10m0s for the collected request counts to increase by 10...
+    ai_service_metrics_test.go:165:   request count: ok (10 = baseline 0 + 10)
+    ai_service_metrics_test.go:165:   request latency histogram count: ok (10 = baseline 0 + 10)
+    ai_service_metrics_test.go:165:   queue depth gauge: ok (0)
+    ai_service_metrics_test.go:166: The monitoring system collected the workload's request count, latency and queue depth metrics
+    ai_service_metrics_test.go:128: Cleaning up namespace ai-service-metrics-zmmh4...
+--- PASS: TestAIServiceMetrics (76.95s)
+=== RUN   TestRobustCRDControllerOperation
+=== RUN   TestRobustCRDControllerOperation/OperatorPodsRunning
+    crd_controller_test.go:136: Verifying operator pods are Ready in namespace kubeflow-system (selector: app.kubernetes.io/name=kubeflow-trainer)...
+    crd_controller_test.go:136: PASS: 1 operator pod(s) are Ready in namespace kubeflow-system
+--- PASS: TestRobustCRDControllerOperation/OperatorPodsRunning (0.00s)
+=== RUN   TestRobustCRDControllerOperation/CRDRegistered
+    crd_controller_test.go:140: Verifying CRD trainjobs.trainer.kubeflow.org is registered and Established...
+    crd_controller_test.go:140: PASS: CRD trainjobs.trainer.kubeflow.org is registered and Established
+--- PASS: TestRobustCRDControllerOperation/CRDRegistered (0.04s)
+=== RUN   TestRobustCRDControllerOperation/WebhookOperational
+    crd_controller_test.go:144: Verifying ValidatingWebhookConfiguration validator.trainer.kubeflow.org exists...
+    crd_controller_test.go:144:   Webhook: validator.clustertrainingruntime.trainer.kubeflow.org (rules: 1, caBundle: 1208 bytes)
+    crd_controller_test.go:144:   Webhook: validator.trainingruntime.trainer.kubeflow.org (rules: 1, caBundle: 1208 bytes)
+    crd_controller_test.go:144:   Webhook: validator.trainjob.trainer.kubeflow.org (rules: 1, caBundle: 1208 bytes)
+    crd_controller_test.go:144: PASS: ValidatingWebhookConfiguration validator.trainer.kubeflow.org exists with 3 webhook(s)
+--- PASS: TestRobustCRDControllerOperation/WebhookOperational (0.00s)
+=== RUN   TestRobustCRDControllerOperation/WebhookRejectsInvalidCR
+    crd_controller_test.go:148: Submitting invalid CR to verify webhook rejection...
+    crd_controller_test.go:148: PASS: Webhook correctly rejected invalid CR: admission webhook "vtrainjob.kb.io" denied the request: runtime 'does-not-exist-runtime' not found
+--- PASS: TestRobustCRDControllerOperation/WebhookRejectsInvalidCR (0.02s)
+=== RUN   TestRobustCRDControllerOperation/ControllerReconcilesCR
+    crd_controller_test.go:152: Verifying runtime torch-distributed exists...
+    crd_controller_test.go:152: Creating valid CR valid-cr...
+    crd_controller_test.go:152: Waiting for controller to reconcile CR valid-cr...
+    crd_controller_test.go:388:   CR condition: type=Complete, status=True, reason=AllJobsCompleted
+    crd_controller_test.go:152: PASS: Controller reconciled CR valid-cr
+    crd_controller_test.go:305: Cleaning up CR valid-cr...
+--- PASS: TestRobustCRDControllerOperation/ControllerReconcilesCR (5.02s)
+    crd_controller_test.go:130: Cleaning up namespace crd-controller-259qm...
+--- PASS: TestRobustCRDControllerOperation (11.10s)
+=== RUN   TestGangScheduling
+=== RUN   TestGangScheduling/PositiveGangScheduling
+    gang_scheduling_test.go:71: Creating positive test job pos-job...
+    gang_scheduling_test.go:158: Waiting for positive job pos-job to complete...
+    gang_scheduling_test.go:180: Verifying scheduling evidence for completed job pos-job...
+    gang_scheduling_test.go:215:   Pod pos-job-dkcds: schedulerName=default-scheduler, nodeName=ip-10-200-2-43, phase=Succeeded
+    gang_scheduling_test.go:215:   Pod pos-job-mprpl: schedulerName=default-scheduler, nodeName=ip-10-200-2-43, phase=Succeeded
+    gang_scheduling_test.go:219: Positive job pos-job completed with 2 pods verified
+--- PASS: TestGangScheduling/PositiveGangScheduling (10.02s)
+=== RUN   TestGangScheduling/NegativeGangScheduling
+    gang_scheduling_test.go:92: Creating negative test job neg-job...
+    gang_scheduling_test.go:225: Verifying negative job neg-job remains suspended or pending without partial pods for 30s...
+    gang_scheduling_test.go:257: Negative job neg-job successfully remained suspended or pending with 0 bound pods throughout the 30s verification window.
+--- PASS: TestGangScheduling/NegativeGangScheduling (30.02s)
+--- PASS: TestGangScheduling (40.04s)
+PASS
+ok  	github.com/kubernetes-sigs/ai-conformance/test	239.271s
+
+DONE 19 tests in 239.273s
