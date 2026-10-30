@@ -3,6 +3,7 @@
 package main
 
 import (
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -520,6 +521,85 @@ func TestCheckRequirementStatus(t *testing.T) {
 			}
 			if len(warnings) != tc.wantWarnings {
 				t.Errorf("warnings=%v, want %d", warnings, tc.wantWarnings)
+			}
+		})
+	}
+}
+
+type roundTripFunc func(*http.Request) (*http.Response, error)
+
+func (f roundTripFunc) RoundTrip(req *http.Request) (*http.Response, error) {
+	return f(req)
+}
+
+func TestValidateProductOptionalLogo(t *testing.T) {
+	t.Chdir(t.TempDir())
+	for _, dir := range []string{"docs", filepath.Join("v1.36", "example")} {
+		if err := os.MkdirAll(dir, 0755); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := os.WriteFile(filepath.Join("docs", "AIConformance-1.36.yaml"), []byte("spec: {}\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	var logoRequested atomic.Bool
+	originalTransport := http.DefaultTransport
+	http.DefaultTransport = roundTripFunc(func(req *http.Request) (*http.Response, error) {
+		status := http.StatusOK
+		if strings.HasSuffix(req.URL.Path, "logo.svg") {
+			logoRequested.Store(true)
+			if req.URL.Path == "/missing-logo.svg" {
+				status = http.StatusNotFound
+			}
+		}
+		return &http.Response{
+			StatusCode: status,
+			Body:       io.NopCloser(strings.NewReader("")),
+			Request:    req,
+		}, nil
+	})
+	t.Cleanup(func() { http.DefaultTransport = originalTransport })
+
+	const metadata = `metadata:
+  kubernetesVersion: v1.36
+  platformName: Example Platform
+  platformVersion: "1.0"
+  vendorName: Example
+  websiteUrl: https://example.com
+  documentationUrl: https://example.com/docs
+  description: Example platform
+  contactEmailAddress: conformance@example.com
+  k8sConformanceUrl: https://github.com/cncf/k8s-conformance/tree/master/v1.36/example
+`
+	cases := []struct {
+		name              string
+		logo              string
+		wantValid         bool
+		wantLogoRequested bool
+	}{
+		{name: "omitted", wantValid: true},
+		{name: "empty", logo: `  productLogoUrl: ""`, wantValid: true},
+		{name: "null", logo: "  productLogoUrl: null", wantValid: true},
+		{name: "provided camelCase", logo: "  productLogoUrl: https://example.com/logo.svg", wantValid: true, wantLogoRequested: true},
+		{name: "provided snake_case", logo: "  product_logo_url: https://example.com/logo.svg", wantValid: true, wantLogoRequested: true},
+		{name: "unreachable camelCase", logo: "  productLogoUrl: https://example.com/missing-logo.svg", wantLogoRequested: true},
+		{name: "unreachable snake_case", logo: "  product_logo_url: https://example.com/missing-logo.svg", wantLogoRequested: true},
+		{name: "non-string", logo: "  productLogoUrl: 42"},
+		{name: "placeholder", logo: `  productLogoUrl: "[Product Logo URL]"`},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			logoRequested.Store(false)
+			path := filepath.Join("v1.36", "example", "PRODUCT.yaml")
+			if err := os.WriteFile(path, []byte(metadata+tc.logo+"\nspec: {}\n"), 0644); err != nil {
+				t.Fatal(err)
+			}
+			if got := validateProduct(path, map[string]bool{"Example": true}); got != tc.wantValid {
+				t.Errorf("validateProduct() = %v, want %v", got, tc.wantValid)
+			}
+			if got := logoRequested.Load(); got != tc.wantLogoRequested {
+				t.Errorf("logo URL requested = %v, want %v", got, tc.wantLogoRequested)
 			}
 		})
 	}
