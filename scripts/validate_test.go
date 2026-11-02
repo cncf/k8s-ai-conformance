@@ -463,7 +463,7 @@ func TestCheckArtifactEvidence_ImplicitTest(t *testing.T) {
 		t.Errorf("skipped implicit test + N/A: errors=%v, want none", errs)
 	}
 
-	errs = checkArtifactEvidence(ref, artifactGoTestJSON, "results.json", "ai_inference", "Implemented", reports)
+	errs = checkArtifactEvidence(ref, artifactGoTestJSON, "results.json", "not_a_mapped_requirement", "Implemented", reports)
 	if len(errs) != 0 {
 		t.Errorf("non-auto-tested requirement: errors=%v, want none", errs)
 	}
