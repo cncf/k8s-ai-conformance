@@ -160,6 +160,7 @@ var autoTestedRequirements = map[string]string{
 	"workload_sandboxing":       "TestWorkloadSandboxing",
 	"accelerator_metrics":       "TestAcceleratorPerformanceMetrics",
 	"pod_autoscaling":           "TestHPAAutoscaling",
+	"ai_inference":              "TestGatewayAPIInference",
 }
 
 // upstreamTestSuiteURL is where vendors can request or contribute test support
