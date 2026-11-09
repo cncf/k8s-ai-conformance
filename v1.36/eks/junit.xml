@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites tests="4" failures="0" errors="0" time="117.483562">
+	<testsuite tests="4" failures="0" time="117.484000" name="github.com/kubernetes-sigs/ai-conformance/test" timestamp="2026-11-09T13:18:07-06:00">
+		<properties>
+			<property name="go.version" value="go1.25.2 darwin/arm64"></property>
+		</properties>
+		<testcase classname="github.com/kubernetes-sigs/ai-conformance/test" name="TestSecureAcceleratorAccess/PositiveAccessTest" time="38.620000"></testcase>
+		<testcase classname="github.com/kubernetes-sigs/ai-conformance/test" name="TestSecureAcceleratorAccess/NegativeIsolationTest" time="35.520000"></testcase>
+		<testcase classname="github.com/kubernetes-sigs/ai-conformance/test" name="TestSecureAcceleratorAccess/MultiContainerIsolationTest" time="35.610000"></testcase>
+		<testcase classname="github.com/kubernetes-sigs/ai-conformance/test" name="TestSecureAcceleratorAccess" time="116.810000"></testcase>
+	</testsuite>
+</testsuites>
