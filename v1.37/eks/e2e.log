@@ -1,0 +1,146 @@
+=== RUN   TestAcceleratorPerformanceMetrics
+=== RUN   TestAcceleratorPerformanceMetrics/MetricsEndpointReachable
+    accelerator_metrics_test.go:92: PASS: Metrics endpoint dcgm/dcgm-exporter returned 23 metric samples
+=== RUN   TestAcceleratorPerformanceMetrics/PerAcceleratorUtilizationMetric
+    accelerator_metrics_test.go:96: PASS: Found per-accelerator utilization metric(s): [DCGM_FI_DEV_GPU_UTIL_RATIO] (1 samples)
+=== RUN   TestAcceleratorPerformanceMetrics/PerAcceleratorMemoryMetric
+    accelerator_metrics_test.go:100: PASS: Found per-accelerator memory metric(s): [DCGM_FI_DEV_FB_USED_BYTES] (1 samples)
+=== RUN   TestAcceleratorPerformanceMetrics/OptionalMetrics
+    accelerator_metrics_test.go:104: PASS (SHOULD): Found per-accelerator temperature metric (1 samples)
+    accelerator_metrics_test.go:104: PASS (SHOULD): Found per-accelerator power metric (2 samples)
+    accelerator_metrics_test.go:104: PASS (SHOULD): Found per-accelerator interconnect bandwidth metric (2 samples)
+--- PASS: TestAcceleratorPerformanceMetrics (0.78s)
+    --- PASS: TestAcceleratorPerformanceMetrics/MetricsEndpointReachable (0.00s)
+    --- PASS: TestAcceleratorPerformanceMetrics/PerAcceleratorUtilizationMetric (0.00s)
+    --- PASS: TestAcceleratorPerformanceMetrics/PerAcceleratorMemoryMetric (0.00s)
+    --- PASS: TestAcceleratorPerformanceMetrics/OptionalMetrics (0.00s)
+=== RUN   TestSecureAcceleratorAccess
+    util_test.go:406: Checking environment: Found ResourceSlice: i-0c091e9b35d326bcf-gpu.nvidia.com-wcckt (Node: i-0c091e9b35d326bcf, Driver: gpu.nvidia.com, Devices: 1)
+    util_test.go:311: Auto-detected allocation mode: dra
+    util_test.go:278: Secure accelerator access test running with allocation mode: dra (accelerator node: i-0c091e9b35d326bcf)
+=== RUN   TestSecureAcceleratorAccess/PositiveAccessTest
+    util_test.go:750: Waiting for Pod pos-pod to be running...
+    util_test.go:951: Waiting to see if Pod pos-pod/prober logs contain 'RESULT: ACCELERATOR_COUNT=1'...
+    util_test.go:967: PASS: prober sees exactly 1 accelerator device(s).
+=== RUN   TestSecureAcceleratorAccess/NegativeIsolationTest
+    util_test.go:750: Waiting for Pod neg-pod to be running...
+    util_test.go:951: Waiting to see if Pod neg-pod/prober logs contain 'RESULT: ACCELERATOR_COUNT=0'...
+    util_test.go:967: PASS: prober sees exactly 0 accelerator device(s).
+=== RUN   TestSecureAcceleratorAccess/MultiContainerIsolationTest
+    util_test.go:750: Waiting for Pod multi-container-pod to be running...
+    util_test.go:951: Waiting to see if Pod multi-container-pod/authorized logs contain 'RESULT: ACCELERATOR_COUNT=1'...
+    util_test.go:967: PASS: authorized sees exactly 1 accelerator device(s).
+    util_test.go:951: Waiting to see if Pod multi-container-pod/unauthorized logs contain 'RESULT: ACCELERATOR_COUNT=0'...
+    util_test.go:967: PASS: unauthorized sees exactly 0 accelerator device(s).
+    ai_conformance_test.go:28: Cleaning up namespace ai-conformance-q8ppp...
+--- PASS: TestSecureAcceleratorAccess (117.39s)
+    --- PASS: TestSecureAcceleratorAccess/PositiveAccessTest (35.62s)
+    --- PASS: TestSecureAcceleratorAccess/NegativeIsolationTest (35.57s)
+    --- PASS: TestSecureAcceleratorAccess/MultiContainerIsolationTest (37.70s)
+=== RUN   TestAIServiceMetrics
+    ai_service_metrics_test.go:133: Deploying metrics workload ai-service-metrics-sx9sr/ai-metrics-stub (run ID rxpf4kt584)...
+    ai_service_metrics_test.go:136: Configuring the monitoring system to scrape the workload...
+    ai_service_metrics_test.go:137: Created scrape configuration ServiceMonitor ai-service-metrics-sx9sr/ai-metrics-stub
+    ai_service_metrics_test.go:150: Waiting up to 5m0s for the monitoring system to collect the workload's metrics...
+    ai_service_metrics_test.go:155:   request count: collected (baseline 0)
+    ai_service_metrics_test.go:155:   request latency histogram count: collected (baseline 0)
+    ai_service_metrics_test.go:155:   queue depth gauge: collected (baseline 0)
+    ai_service_metrics_test.go:157: Sending 10 inference requests...
+    ai_service_metrics_test.go:160: Waiting up to 5m0s for the collected request counts to increase by 10...
+    ai_service_metrics_test.go:165:   request count: ok (10 = baseline 0 + 10)
+    ai_service_metrics_test.go:165:   request latency histogram count: ok (10 = baseline 0 + 10)
+    ai_service_metrics_test.go:165:   queue depth gauge: ok (0)
+    ai_service_metrics_test.go:166: The monitoring system collected the workload's request count, latency and queue depth metrics
+    ai_service_metrics_test.go:128: Cleaning up namespace ai-service-metrics-sx9sr...
+--- PASS: TestAIServiceMetrics (142.60s)
+=== RUN   TestRobustCRDControllerOperation
+=== RUN   TestRobustCRDControllerOperation/OperatorPodsRunning
+    crd_controller_test.go:136: Verifying operator pods are Ready in namespace kubeflow-system (selector: app.kubernetes.io/name=kubeflow-trainer)...
+    crd_controller_test.go:136: PASS: 2 operator pod(s) are Ready in namespace kubeflow-system
+=== RUN   TestRobustCRDControllerOperation/CRDRegistered
+    crd_controller_test.go:140: Verifying CRD trainjobs.trainer.kubeflow.org is registered and Established...
+    crd_controller_test.go:140: PASS: CRD trainjobs.trainer.kubeflow.org is registered and Established
+=== RUN   TestRobustCRDControllerOperation/WebhookOperational
+    crd_controller_test.go:144: Verifying ValidatingWebhookConfiguration validator.trainer.kubeflow.org exists...
+    crd_controller_test.go:144:   Webhook: validator.clustertrainingruntime.trainer.kubeflow.org (rules: 1, caBundle: 1208 bytes)
+    crd_controller_test.go:144:   Webhook: validator.optimizationjob.trainer.kubeflow.org (rules: 1, caBundle: 1208 bytes)
+    crd_controller_test.go:144:   Webhook: validator.trainingruntime.trainer.kubeflow.org (rules: 1, caBundle: 1208 bytes)
+    crd_controller_test.go:144:   Webhook: validator.trainjob.trainer.kubeflow.org (rules: 1, caBundle: 1208 bytes)
+    crd_controller_test.go:144: PASS: ValidatingWebhookConfiguration validator.trainer.kubeflow.org exists with 4 webhook(s)
+=== RUN   TestRobustCRDControllerOperation/WebhookRejectsInvalidCR
+    crd_controller_test.go:148: Submitting invalid CR to verify webhook rejection...
+    crd_controller_test.go:148: PASS: Webhook correctly rejected invalid CR: admission webhook "validator.trainjob.trainer.kubeflow.org" denied the request: spec.runtimeRef: Invalid value: {"name":"does-not-exist-runtime","apiGroup":"trainer.kubeflow.org","kind":"ClusterTrainingRuntime"}: ClusterTrainingRuntime.trainer.kubeflow.org "does-not-exist-runtime" not found: specified clusterTrainingRuntime must be created before the TrainJob is created
+=== RUN   TestRobustCRDControllerOperation/ControllerReconcilesCR
+    crd_controller_test.go:152: Verifying runtime torch-distributed exists...
+    crd_controller_test.go:152: Creating valid CR valid-cr...
+    crd_controller_test.go:152: Waiting for controller to reconcile CR valid-cr...
+    crd_controller_test.go:388:   CR condition: type=Complete, status=True, reason=AllJobsCompleted
+    crd_controller_test.go:152: PASS: Controller reconciled CR valid-cr
+    crd_controller_test.go:305: Cleaning up CR valid-cr...
+    crd_controller_test.go:130: Cleaning up namespace crd-controller-6b49d...
+--- PASS: TestRobustCRDControllerOperation (76.97s)
+    --- PASS: TestRobustCRDControllerOperation/OperatorPodsRunning (0.07s)
+    --- PASS: TestRobustCRDControllerOperation/CRDRegistered (0.22s)
+    --- PASS: TestRobustCRDControllerOperation/WebhookOperational (0.07s)
+    --- PASS: TestRobustCRDControllerOperation/WebhookRejectsInvalidCR (0.09s)
+    --- PASS: TestRobustCRDControllerOperation/ControllerReconcilesCR (70.30s)
+=== RUN   TestAcceleratorDriverRuntimeManagement
+    util_test.go:406: Checking environment: Found ResourceSlice: i-0c091e9b35d326bcf-gpu.nvidia.com-wcckt (Node: i-0c091e9b35d326bcf, Driver: gpu.nvidia.com, Devices: 1)
+    util_test.go:311: Auto-detected allocation mode: dra
+    driver_runtime_management_test.go:172: Accelerator driver & runtime management test running with allocation mode: dra
+    util_test.go:750: Waiting for Pod driver-runtime-probe-pod to be running...
+=== RUN   TestAcceleratorDriverRuntimeManagement/VerifiableMechanismExposed
+    driver_runtime_management_test.go:202: PASS: node i-0c091e9b35d326bcf advertises driver version "580.178.4" via dra [driverVersion]
+=== RUN   TestAcceleratorDriverRuntimeManagement/DriverAndRuntimeCompatibility
+    driver_runtime_management_test.go:215: PASS: container runtime configuration and accelerator driver verified on node i-0c091e9b35d326bcf (observed driver=580.178.04; advertised via dra: "580.178.4")
+    driver_runtime_management_test.go:176: Cleaning up namespace ai-conformance-driver-runtime-fkphh...
+--- PASS: TestAcceleratorDriverRuntimeManagement (47.94s)
+    --- PASS: TestAcceleratorDriverRuntimeManagement/VerifiableMechanismExposed (0.14s)
+    --- PASS: TestAcceleratorDriverRuntimeManagement/DriverAndRuntimeCompatibility (0.08s)
+=== RUN   TestGangScheduling
+=== RUN   TestGangScheduling/PositiveGangScheduling
+    gang_scheduling_test.go:71: Creating positive test job pos-job...
+    gang_scheduling_test.go:158: Waiting for positive job pos-job to complete...
+    gang_scheduling_test.go:180: Verifying scheduling evidence for completed job pos-job...
+    gang_scheduling_test.go:215:   Pod pos-job-sgh6k: schedulerName=default-scheduler, nodeName=i-0c091e9b35d326bcf, phase=Succeeded
+    gang_scheduling_test.go:215:   Pod pos-job-vn22w: schedulerName=default-scheduler, nodeName=i-0c091e9b35d326bcf, phase=Succeeded
+    gang_scheduling_test.go:219: Positive job pos-job completed with 2 pods verified
+=== RUN   TestGangScheduling/NegativeGangScheduling
+    gang_scheduling_test.go:92: Creating negative test job neg-job...
+    gang_scheduling_test.go:225: Verifying negative job neg-job remains suspended or pending without partial pods for 30s...
+    gang_scheduling_test.go:257: Negative job neg-job successfully remained suspended or pending with 0 bound pods throughout the 30s verification window.
+--- PASS: TestGangScheduling (42.72s)
+    --- PASS: TestGangScheduling/PositiveGangScheduling (12.36s)
+    --- PASS: TestGangScheduling/NegativeGangScheduling (30.34s)
+=== RUN   TestGatewayAPIInference
+    gateway_api_inference_test.go:104: Using GatewayClass agentgateway-clusterip from -gateway-api-class
+    gateway_api_inference_test.go:128: Deploying two inference backends...
+    gateway_api_inference_test.go:137: Creating the Gateway and HTTPRoute...
+    gateway_api_inference_test.go:167: Waiting up to 12m0s for the Gateway to be Programmed, the HTTPRoute Accepted and traffic routed...
+    gateway_api_inference_test.go:176: Gateway address: 10.100.254.205
+    gateway_api_inference_test.go:178: Sending header-matched and weighted traffic through the Gateway...
+    gateway_api_inference_test.go:188: Header-matched requests: map[model-v1:0 model-v2:20 other:0]
+    gateway_api_inference_test.go:196: Weighted traffic split 70/30 within 5%: [map[model-v1:357 model-v2:143 other:0]]
+    gateway_api_inference_test.go:123: Cleaning up namespace gateway-api-pznhn...
+--- PASS: TestGatewayAPIInference (60.54s)
+=== RUN   TestHPAAutoscaling
+    util_test.go:406: Checking environment: Found ResourceSlice: i-0c091e9b35d326bcf-gpu.nvidia.com-wcckt (Node: i-0c091e9b35d326bcf, Driver: gpu.nvidia.com, Devices: 1)
+    util_test.go:311: Auto-detected allocation mode: dra
+    hpa_autoscaling_test.go:144: HPA autoscaling test running with allocation mode dra, metric "ai_conformance_hpa_queue_depth" (custom.metrics.k8s.io/v1beta1), maxReplicas 2
+    hpa_autoscaling_test.go:901: Waiting for the baseline accelerator Pod to become Ready...
+    hpa_autoscaling_test.go:915: Waiting for the custom metrics API to report 1 for [hpa-workload-6f7f4f575f-jcdtv]...
+    hpa_autoscaling_test.go:930: Negative control: the HPA must stay at 1 replica for 1m0s while the metric is below target...
+    hpa_autoscaling_test.go:937: PASS: Baseline established with Pod [hpa-workload-6f7f4f575f-jcdtv]
+    hpa_autoscaling_test.go:945: Raising the custom metric to 100 (target 10)...
+    hpa_autoscaling_test.go:959: HPA set the Deployment to 2 replicas; waiting for the new accelerator Pods...
+    hpa_autoscaling_test.go:987: PASS: HPA scaled up to 2 replicas; Pods [hpa-workload-6f7f4f575f-jcdtv hpa-workload-6f7f4f575f-lq4mm] are Running and Ready
+    hpa_autoscaling_test.go:1004: Lowering the custom metric to 2 (target 10)...
+    hpa_autoscaling_test.go:1013: Waiting up to 15m0s for the HPA to scale down after its 1m0s stabilization window...
+    hpa_autoscaling_test.go:1022: PASS: HPA scaled down to 1 replica ([hpa-workload-6f7f4f575f-jcdtv]), observed 2m41s after the metric was lowered (scale-down stabilization window 1m0s)
+    hpa_autoscaling_test.go:148: Cleaning up namespace hpa-autoscaling-v8wtr...
+--- PASS: TestHPAAutoscaling (576.99s)
+PASS
+ok  	github.com/kubernetes-sigs/ai-conformance/test	1066.546s
+
+DONE 24 tests in 1066.543s
+exit=0

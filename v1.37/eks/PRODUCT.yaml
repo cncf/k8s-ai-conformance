@@ -1,0 +1,193 @@
+# Kubernetes AI Conformance Checklist - v1.37
+# Notes: This checklist is based on the Kubernetes AI Conformance document.
+# Participants should fill in the 'status', 'evidence', and 'notes' fields for each requirement.
+#
+# Hybrid Verification Approach for v1.37:
+# - For requirements with automated tests (e.g., Secure Accelerator Access, Gang Scheduling),
+#   you can link to the test output files (e.g., e2e.log, junit.xml) in the 'evidence' list.
+# - For requirements without automated tests, please provide manual evidence (e.g., documentation URLs,
+#   screenshots, or self-attestation logs).
+#
+# Example of evidence for automated test:
+#   evidence:
+#     - "file://results/junit.xml#TestSecureAcceleratorAccess"
+#     - "file://results/e2e.log"
+#
+# Example of evidence for manual verification:
+#   evidence:
+#     - "https://docs.vendor.com/features/workload-sandboxing"
+
+metadata:
+  kubernetesVersion: v1.37
+  platformName: "Amazon Elastic Kubernetes Service (EKS)"
+  platformVersion: "1.37.1-eks.7"
+  vendorName: "Amazon Web Services"
+  websiteUrl: "https://aws.amazon.com/eks/"
+  repoUrl: "https://github.com/awslabs/ai-on-eks"
+  documentationUrl: "https://docs.aws.amazon.com/eks/latest/userguide/what-is-eks.html"
+  productLogoUrl: "https://raw.githubusercontent.com/cncf/landscape/master/hosted_logos/amazon-web-services.svg"
+  description: "Amazon EKS is a managed Kubernetes service that you can use to build, run, and scale production-ready Kubernetes applications across any environment"
+  contactEmailAddress: "splichri@amazon.com"
+  k8sConformanceUrl: "https://github.com/cncf/k8s-conformance/tree/master/v1.37/eks"
+
+spec:
+  accelerators:
+    - id: driver_runtime_management
+      description: "Provide a verifiable mechanism for ensuring that compatible accelerator drivers and corresponding container runtime configurations are correctly installed and maintained on nodes with accelerators. Once the accelerator supports exposing driver and runtime version information as part of DRA, then the platform should use the DRA mechanism for verification."
+      level: SHOULD
+      status: "Implemented"
+      evidence:
+        - "file://v1.37/eks/junit.xml#TestAcceleratorDriverRuntimeManagement"
+        - "file://v1.37/eks/results.json#TestAcceleratorDriverRuntimeManagement"
+        - "file://v1.37/eks/e2e.log"
+        - "https://docs.aws.amazon.com/eks/latest/userguide/device-management.html"
+        - "https://docs.aws.amazon.com/eks/latest/userguide/device-management-nvidia-dra-device-plugin.html"
+      notes: ""
+    - id: gpu_sharing
+      description: "For accelerators that support static GPU sharing, provide well-defined mechanisms for at least one GPU sharing strategy to improve utilization for workloads that do not require a full dedicated GPU. If hardware-level partitioning is supported, then these fractional GPU resources should be exposed as schedulable resources. If software-based sharing (e.g. time-slicing) is supported, then oversubscription of GPUs should be allowed. Forward-looking: Once the accelerator supports static GPU sharing as part of DRA, the platform should expose the DRA mechanism to allow users to leverage static GPU sharing. Once the accelerator supports dynamic GPU sharing as part of DRA and the partitionable devices feature is GA, the platform should expose the DRA mechanism to allow users to leverage dynamic GPU sharing."
+      level: SHOULD
+      status: "Implemented"
+      evidence:
+        - "https://docs.aws.amazon.com/eks/latest/userguide/device-management-nvidia-mig.html"
+        - "https://docs.aws.amazon.com/eks/latest/userguide/device-management-nvidia-time-slicing.html"
+      notes: ""
+    - id: virtualized_accelerator
+      description: "For accelerators that support virtualized accelerator technologies (e.g. vGPU), provide well-defined mechanisms for these to be exposed and managed, maintaining consistency with physical fractional GPUs. Forward-looking: Once the accelerator supports virtualized accelerator technologies as part of DRA, then the platform should use the DRA mechanism."
+      level: SHOULD
+      status: "Implemented"
+      evidence:
+        - "https://docs.aws.amazon.com/eks/latest/userguide/device-management-nvidia-time-slicing.html"
+      notes: ""
+  networking:
+    - id: ai_inference
+      description: "Support the Kubernetes Gateway API with an implementation for advanced traffic management for inference services, which enables capabilities like weighted traffic splitting, header-based routing (for OpenAI protocol headers), and optional integration with service meshes."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "file://v1.37/eks/junit.xml#TestGatewayAPIInference"
+        - "file://v1.37/eks/results.json#TestGatewayAPIInference"
+        - "file://v1.37/eks/e2e.log"
+        - "https://docs.aws.amazon.com/eks/latest/userguide/auto-configure-gateway-api.html"
+        - "https://docs.aws.amazon.com/eks/latest/userguide/alb-ingress.html"
+      notes: "Tested with agentgateway v1.7.0 as the Gateway API implementation."
+    - id: advanced_inference_ingress
+      description: "Support an implementation of the Gateway API Inference Extension (GAIE), which can route requests to models hosted on Kubernetes. The implementation supports serving LLMs and making advanced routing decisions (e.g., K/V cache-aware routing) based on metrics and capabilities advertised by the underlying model serving platform."
+      level: SHOULD
+      status: "Implemented"
+      evidence:
+        - "https://github.com/awslabs/ai-on-eks/blob/main/infra/base/terraform/argocd-addons/gateway-api-inference-crds.yaml"
+        - "https://github.com/awslabs/ai-on-eks/blob/main/infra/base/terraform/argocd_addons.tf"
+        - "https://docs.aws.amazon.com/sagemaker/latest/dg/sagemaker-hyperpod-model-deployment-inference-gateway.html"
+      notes: "Two options. Self-managed: the upstream Gateway API Inference Extension CRDs install on EKS as an Argo CD add-on, so a GAIE implementation and its Endpoint Picker can be deployed on the cluster. Managed: the SageMaker HyperPod Inference Gateway, delivered as an EKS add-on, reconciles GAIE InferencePool resources and routes on signals advertised by the serving layer, including KV cache state and GPU load."
+    - id: high_performance_networking
+      description: "If high performance pod-to-pod communication is needed, then provide well-defined mechanisms for these specialized network resources to be managed and exposed such that their characteristics should be discoverable to enable informed scheduling or workload configuration and to enable pods to attach to multiple network interfaces. Platforms should use DRA as the mechanism to manage and expose these specialized network resources (e.g., DRANET)."
+      level: SHOULD
+      status: "Implemented"
+      evidence:
+        - "https://docs.aws.amazon.com/eks/latest/userguide/device-management-efa.html"
+        - "https://docs.aws.amazon.com/eks/latest/userguide/pod-multiple-network-interfaces.html"
+      notes: ""
+    - id: disaggregated_inference
+      description: "Support the deployment and operation of disaggregated inference architectures. To be conformant, the platform should demonstrate that it can successfully install and run a disaggregated inference solution (e.g., vLLM, SGLang, llm-d, or Dynamo, with separate instances for distinct phases like prefill and decode). Disaggregated serving splits phases such as prefill and decode into separately scalable components so each phase can match different compute/memory/network needs, improving GPU utilization and tail latency while enabling higher throughput under mixed and bursty LLM workloads."
+      level: SHOULD
+      status: "Implemented"
+      evidence:
+        - "https://github.com/aws-samples/sample-llm-inference-on-eks/blob/main/docs/PD_DISAGGREGATION.md"
+        - "https://github.com/aws-samples/sample-llm-inference-on-eks"
+        - "https://awslabs.github.io/ai-on-eks/docs/blueprints/inference/framework-guides/GPUs/nvidia-dynamo"
+      notes: "Prefill and decode run as separate LeaderWorkerSets, each independently scalable, with KV cache transferred between them over EFA. The linked repository carries both SGLang and vLLM manifests and images; an NVIDIA Dynamo blueprint with vLLM, SGLang and TensorRT-LLM backends is also available."
+  schedulingOrchestration:
+    - id: gang_scheduling
+      description: "The platform must allow for the installation and successful operation of at least one gang scheduling solution that ensures all-or-nothing scheduling for distributed AI workloads (e.g. Kueue, Volcano, etc.) To be conformant, the vendor must demonstrate that their platform can successfully run at least one such solution."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "file://v1.37/eks/junit.xml#TestGangScheduling"
+        - "file://v1.37/eks/results.json#TestGangScheduling"
+        - "file://v1.37/eks/e2e.log"
+        - "https://aws.amazon.com/blogs/hpc/scaling-your-llm-inference-workloads-multi-node-deployment-with-tensorrt-llm-and-triton-on-amazon-eks/" # LeaderWorkerSet on EKS
+        - "https://awslabs.github.io/ai-on-eks/docs/blueprints/training/Neuron/RayTrain-Llama2#how-volcano-works-with-gang-scheduling" # Volcano on EKS blueprint
+        - "https://builder.aws.com/content/2zsUDYed1Df7zHHZFc11MRctb6M/fractional-gpu-sharing-on-amazon-eks-using-nvidia-kai-scheduler-and-accelerated-ec2-instances" # Kai Scheduler on EKS
+        - "https://aws.amazon.com/blogs/big-data/deploy-apache-yunikorn-batch-scheduler-for-amazon-emr-on-eks/" # Yunikorn on EKS
+        - "https://aws.amazon.com/blogs/hpc/gang-scheduling-pods-on-amazon-eks-using-aws-batch-multi-node-processing-jobs/" # AWS Batch on EKS
+        - "https://docs.aws.amazon.com/batch/latest/userguide/eks-jobs.html"
+      notes: "EKS supports using custom schedulers, LeaderWorkerSet, as well as integrations with AWS Batch and Amazon SageMaker for gang scheduling. Tested with Kueue 0.14.3 installed as the gang scheduler."
+    - id: cluster_autoscaling
+      description: "If the platform provides a cluster autoscaler or an equivalent mechanism, it must be able to scale up/down node groups containing specific accelerator types based on pending pods requesting those accelerators."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "file://v1.37/eks/cluster-autoscaling/junit.xml#TestAcceleratorClusterAutoscaling"
+        - "file://v1.37/eks/cluster-autoscaling/results.json#TestAcceleratorClusterAutoscaling"
+        - "file://v1.37/eks/cluster-autoscaling/e2e.log"
+        - "https://docs.aws.amazon.com/eks/latest/userguide/auto-accelerated.html"
+        - "https://docs.aws.amazon.com/eks/latest/userguide/device-management.html"
+      notes: "Karpenter scales the pool for pending pods that request accelerators either as a device plugin extended resource or as a DRA ResourceClaim. On Kubernetes 1.36 and later, EKS Auto Mode and Karpenter match a pending claim's device attributes against per-instance-type metadata, so a claim can be satisfied by launching a node that does not yet exist."
+    - id: pod_autoscaling
+      description: "If the platform supports the HorizontalPodAutoscaler, it must function correctly for pods utilizing accelerators. This includes the ability to scale these Pods based on custom metrics relevant to AI/ML workloads."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "file://v1.37/eks/junit.xml#TestHPAAutoscaling"
+        - "file://v1.37/eks/results.json#TestHPAAutoscaling"
+        - "file://v1.37/eks/e2e.log"
+        - "https://docs.aws.amazon.com/eks/latest/userguide/horizontal-pod-autoscaler.html"
+        - "https://docs.aws.amazon.com/eks/latest/userguide/ml-inference-autoscaling.html"
+      notes: "Tested with kube-prometheus-stack and prometheus-adapter serving the workload gauge through custom.metrics.k8s.io."
+  observability:
+    - id: accelerator_metrics
+      description: "For supported accelerator types, the platform must allow for the installation and successful operation of at least one accelerator metrics solution that exposes fine-grained performance metrics via a standardized, machine-readable metrics endpoint. This must include a core set of metrics for per-accelerator utilization and memory usage. Additionally, other relevant metrics such as temperature, power draw, and interconnect bandwidth should be exposed if the underlying hardware or virtualization layer makes they available. The list of metrics should align with emerging standards, such as OpenTelemetry metrics, to ensure interoperability. The platform may provide a managed solution, but this is not required for conformance."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "file://v1.37/eks/junit.xml#TestAcceleratorPerformanceMetrics"
+        - "file://v1.37/eks/results.json#TestAcceleratorPerformanceMetrics"
+        - "file://v1.37/eks/e2e.log"
+        - "https://docs.aws.amazon.com/eks/latest/userguide/prometheus.html"
+        - "https://docs.aws.amazon.com/eks/latest/userguide/cloudwatch.html"
+        - "https://docs.aws.amazon.com/eks/latest/best-practices/aiml-observability.html"
+      notes: "Tested with the NVIDIA DCGM exporter installed."
+    - id: ai_service_metrics
+      description: "Provide a monitoring system capable of discovering and collecting metrics from workloads that expose them in a standard format (e.g. Prometheus exposition format). This ensures easy integration for collecting key metrics from common AI frameworks and servers."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "file://v1.37/eks/junit.xml#TestAIServiceMetrics"
+        - "file://v1.37/eks/results.json#TestAIServiceMetrics"
+        - "file://v1.37/eks/e2e.log"
+        - "https://docs.aws.amazon.com/eks/latest/userguide/prometheus.html"
+        - "https://docs.aws.amazon.com/eks/latest/userguide/eks-observe.html"
+      notes: "Tested with kube-prometheus-stack installed."
+  security:
+    - id: secure_accelerator_access
+      description: "Ensure that access to accelerators from within containers is properly isolated and mediated by the Kubernetes resource management framework (device plugin or DRA) and container runtime, preventing unauthorized access or interference between workloads."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "file://v1.37/eks/junit.xml#TestSecureAcceleratorAccess"
+        - "file://v1.37/eks/results.json#TestSecureAcceleratorAccess"
+        - "file://v1.37/eks/e2e.log"
+        - "https://docs.aws.amazon.com/eks/latest/userguide/device-management.html"
+      notes: "Verified on an EKS Auto Mode cluster, server v1.37.1-eks-577a51e, platform eks.7, in DRA mode: the node carries eks.amazonaws.com/device-manager-nvidia=dra and test pods claim GPUs with a ResourceClaimTemplate, as nvidia.com/gpu is not advertised on a DRA node."
+    - id: workload_sandboxing
+      description: "Provide a mechanism to run workloads in a sandbox that provides strong isolation from the host node kernel. This is crucial for AI agent use cases that may execute untrusted code. The sandbox should isolate the workload's process, memory, filesystem, and network access from the host node and other co-located pods."
+      level: SHOULD
+      status: "Implemented"
+      evidence:
+        - "https://docs.aws.amazon.com/eks/latest/userguide/sandboxing.html"
+        - "https://docs.aws.amazon.com/eks/latest/userguide/sandboxing-security-model.html"
+        - "https://docs.aws.amazon.com/eks/latest/userguide/sandboxing-network-isolation.html"
+        - "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/amazon-ec2-nitro-sandboxes.html"
+      notes: "AWS Nitro Sandboxes run a pod in a Nitro Hypervisor virtual machine with its own kernel and isolated memory. Set runtimeClassName to isolated-sandbox, or confidential-sandbox to add NSM attestation; EKS manages the RuntimeClass. Network policy is enforced outside the isolated boundary, so a container escape cannot reach the host node or co-located pods. TestWorkloadSandboxing reports NET_ISOLATION=FAIL against this runtime because its probe rejects any interface whose name matches dummy*, and the Linux dummy driver creates an unused dummy0 at boot. That interface is guest-local and carries no address when network isolation is enabled, while the host namespace on the same node has no dummy interface at all, so the name is not evidence of host network visibility; a fix has been proposed upstream."
+  operator:
+    - id: robust_controller
+      description: "The platform must prove that at least one complex AI operator with a CRD (e.g., Ray, Kubeflow) can be installed and functions reliably. This includes verifying that the operator's pods run correctly, its webhooks are operational, and its custom resources can be reconciled."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "file://v1.37/eks/junit.xml#TestRobustCRDControllerOperation"
+        - "file://v1.37/eks/results.json#TestRobustCRDControllerOperation"
+        - "file://v1.37/eks/e2e.log"
+        - "https://docs.aws.amazon.com/eks/latest/userguide/ml-inference.html"
+        - "https://awslabs.github.io/ai-on-eks/docs/blueprints/inference"
+      notes: "Tested with Kubeflow Trainer v2.4.0 as the operator under test."
