@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites tests="24" failures="0" errors="0" time="1066.543175">
+	<testsuite tests="24" failures="0" time="1066.546000" name="github.com/kubernetes-sigs/ai-conformance/test" timestamp="2026-11-09T12:50:16-06:00">
+		<properties>
+			<property name="go.version" value="go1.25.2 darwin/arm64"></property>
+		</properties>
+		<testcase classname="github.com/kubernetes-sigs/ai-conformance/test" name="TestAcceleratorPerformanceMetrics/MetricsEndpointReachable" time="0.000000"></testcase>
+		<testcase classname="github.com/kubernetes-sigs/ai-conformance/test" name="TestAcceleratorPerformanceMetrics/PerAcceleratorUtilizationMetric" time="0.000000"></testcase>
+		<testcase classname="github.com/kubernetes-sigs/ai-conformance/test" name="TestAcceleratorPerformanceMetrics/PerAcceleratorMemoryMetric" time="0.000000"></testcase>
+		<testcase classname="github.com/kubernetes-sigs/ai-conformance/test" name="TestAcceleratorPerformanceMetrics/OptionalMetrics" time="0.000000"></testcase>
+		<testcase classname="github.com/kubernetes-sigs/ai-conformance/test" name="TestAcceleratorPerformanceMetrics" time="0.780000"></testcase>
+		<testcase classname="github.com/kubernetes-sigs/ai-conformance/test" name="TestSecureAcceleratorAccess/PositiveAccessTest" time="35.620000"></testcase>
+		<testcase classname="github.com/kubernetes-sigs/ai-conformance/test" name="TestSecureAcceleratorAccess/NegativeIsolationTest" time="35.570000"></testcase>
+		<testcase classname="github.com/kubernetes-sigs/ai-conformance/test" name="TestSecureAcceleratorAccess/MultiContainerIsolationTest" time="37.700000"></testcase>
+		<testcase classname="github.com/kubernetes-sigs/ai-conformance/test" name="TestSecureAcceleratorAccess" time="117.390000"></testcase>
+		<testcase classname="github.com/kubernetes-sigs/ai-conformance/test" name="TestAIServiceMetrics" time="142.600000"></testcase>
+		<testcase classname="github.com/kubernetes-sigs/ai-conformance/test" name="TestRobustCRDControllerOperation/OperatorPodsRunning" time="0.070000"></testcase>
+		<testcase classname="github.com/kubernetes-sigs/ai-conformance/test" name="TestRobustCRDControllerOperation/CRDRegistered" time="0.220000"></testcase>
+		<testcase classname="github.com/kubernetes-sigs/ai-conformance/test" name="TestRobustCRDControllerOperation/WebhookOperational" time="0.070000"></testcase>
+		<testcase classname="github.com/kubernetes-sigs/ai-conformance/test" name="TestRobustCRDControllerOperation/WebhookRejectsInvalidCR" time="0.090000"></testcase>
+		<testcase classname="github.com/kubernetes-sigs/ai-conformance/test" name="TestRobustCRDControllerOperation/ControllerReconcilesCR" time="70.300000"></testcase>
+		<testcase classname="github.com/kubernetes-sigs/ai-conformance/test" name="TestRobustCRDControllerOperation" time="76.970000"></testcase>
+		<testcase classname="github.com/kubernetes-sigs/ai-conformance/test" name="TestAcceleratorDriverRuntimeManagement/VerifiableMechanismExposed" time="0.140000"></testcase>
+		<testcase classname="github.com/kubernetes-sigs/ai-conformance/test" name="TestAcceleratorDriverRuntimeManagement/DriverAndRuntimeCompatibility" time="0.080000"></testcase>
+		<testcase classname="github.com/kubernetes-sigs/ai-conformance/test" name="TestAcceleratorDriverRuntimeManagement" time="47.940000"></testcase>
+		<testcase classname="github.com/kubernetes-sigs/ai-conformance/test" name="TestGangScheduling/PositiveGangScheduling" time="12.360000"></testcase>
+		<testcase classname="github.com/kubernetes-sigs/ai-conformance/test" name="TestGangScheduling/NegativeGangScheduling" time="30.340000"></testcase>
+		<testcase classname="github.com/kubernetes-sigs/ai-conformance/test" name="TestGangScheduling" time="42.720000"></testcase>
+		<testcase classname="github.com/kubernetes-sigs/ai-conformance/test" name="TestGatewayAPIInference" time="60.540000"></testcase>
+		<testcase classname="github.com/kubernetes-sigs/ai-conformance/test" name="TestHPAAutoscaling" time="576.990000"></testcase>
+	</testsuite>
+</testsuites>

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites tests="1" failures="0" errors="0" time="1007.463556">
+	<testsuite tests="1" failures="0" time="1007.458000" name="github.com/kubernetes-sigs/ai-conformance/test" timestamp="2026-11-09T13:20:36-06:00">
+		<properties>
+			<property name="go.version" value="go1.25.2 darwin/arm64"></property>
+		</properties>
+		<testcase classname="github.com/kubernetes-sigs/ai-conformance/test" name="TestAcceleratorClusterAutoscaling" time="1006.800000"></testcase>
+	</testsuite>
+</testsuites>

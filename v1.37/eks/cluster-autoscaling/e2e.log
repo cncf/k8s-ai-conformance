@@ -1,0 +1,16 @@
+=== RUN   TestAcceleratorClusterAutoscaling
+    util_test.go:406: Checking environment: Found ResourceSlice: i-0c091e9b35d326bcf-gpu.nvidia.com-wcckt (Node: i-0c091e9b35d326bcf, Driver: gpu.nvidia.com, Devices: 1)
+    util_test.go:311: Auto-detected allocation mode: dra
+    cluster_autoscaling_test.go:101: Accelerator autoscaling test running with allocation mode: dra
+    cluster_autoscaling_test.go:117: Captured accelerator pool baseline: 1 Ready, schedulable nodes matching karpenter.sh/nodepool=gpu-dra
+    cluster_autoscaling_test.go:183: Baseline established: 1 accelerator Pods occupy 1 distinct pool nodes
+    cluster_autoscaling_test.go:201: Scale-up triggered by Pending Pod autoscaler-trigger: 0/2 nodes are available: 1 cannot allocate all claims, 1 node(s) didn't match Pod's node affinity/selector. preemption: 0/2 nodes are available: 2 Preemption is not helpful for scheduling.
+    cluster_autoscaling_test.go:225: PASS: Accelerator pool scaled from 1 to 2 nodes; trigger Pod is Running on new node i-07c8ab52931a443e8
+    cluster_autoscaling_test.go:245: PASS: Accelerator pool returned to its baseline size of 1 nodes
+    cluster_autoscaling_test.go:128: Cleaning up namespace accelerator-autoscaling-vbh8f...
+--- PASS: TestAcceleratorClusterAutoscaling (1006.80s)
+PASS
+ok  	github.com/kubernetes-sigs/ai-conformance/test	1007.458s
+
+DONE 1 tests in 1007.464s
+exit=0
