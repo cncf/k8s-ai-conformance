@@ -1,0 +1,143 @@
+# Kubernetes AI Conformance Checklist
+# Notes: This checklist is based on the Kubernetes AI Conformance document.
+# Participants should fill in the 'status', 'evidence', and 'notes' fields for each requirement.
+
+metadata:
+  kubernetesVersion: v1.36
+  platformName: "OpenShift Container Platform"
+  platformVersion: "5.0"
+  vendorName: "Red Hat"
+  websiteUrl: "https://www.redhat.com/en/technologies/cloud-computing/openshift"
+  documentationUrl: "https://docs.redhat.com/en/documentation/openshift_container_platform/5.0"
+  productLogoUrl: "https://www.redhat.com/rhdc/managed-files/Logo-Red_Hat-OpenShift-A-Standard-RGB.svg"
+  repoUrl: "https://github.com/openshift"
+  contactEmailAddress: "harpatil@redhat.com"
+  k8sConformanceUrl: "https://github.com/cncf/k8s-conformance/tree/master/v1.36/openshift"
+  description: "Red Hat OpenShift Container Platform is an enterprise-ready Kubernetes container platform with full-stack automated operations to manage hybrid cloud, multicloud, and edge deployments."
+
+spec:
+  accelerators:
+    - id: driver_runtime_management
+      description: "Provide a verifiable mechanism for ensuring that compatible accelerator drivers and corresponding container runtime configurations are correctly installed and maintained on nodes with accelerators. Once the accelerator supports exposing driver and runtime version information as part of DRA, then the platform should use the DRA mechanism for verification."
+      level: SHOULD
+      status: "Implemented"
+      evidence:
+        - "https://docs.redhat.com/en/documentation/openshift_container_platform/5.0/html-single/hardware_accelerators/index#nvidia-gpu-architecture"
+        - "https://docs.nvidia.com/datacenter/cloud-native/openshift/latest/install-gpu-ocp.html"
+      notes: "The NVIDIA GPU Operator manages the full accelerator driver and container-runtime lifecycle on OpenShift GPU nodes (driver container, NVIDIA Container Toolkit, device plugin) and gates GPU-node readiness on the nvidia-operator-validator. The GPU Operator is not yet listed in OpenShift 5.0's default certified catalog; certified availability is pending."
+    - id: gpu_sharing
+      description: "For accelerators that support static GPU sharing, provide well-defined mechanisms for at least one GPU sharing strategy to improve utilization for workloads that do not require a full dedicated GPU. If hardware-level partitioning is supported, then these fractional GPU resources should be exposed as schedulable resources. If software-based sharing (e.g. time-slicing) is supported, then oversubscription of GPUs should be allowed. Forward-looking: Once the accelerator supports static GPU sharing as part of DRA, the platform should expose the DRA mechanism to allow users to leverage static GPU sharing. Once the accelerator supports dynamic GPU sharing as part of DRA and the partitionable devices feature is GA, the platform should expose the DRA mechanism to allow users to leverage dynamic GPU sharing."
+      level: SHOULD
+      status: "Implemented"
+      evidence:
+        - "https://docs.redhat.com/en/documentation/openshift_container_platform/5.0/html-single/hardware_accelerators/index#nvidia-gpu-bare-metal_nvidia-gpu-architecture"
+        - "https://docs.nvidia.com/datacenter/cloud-native/openshift/latest/time-slicing-gpus-in-openshift.html"
+        - "https://docs.nvidia.com/datacenter/cloud-native/openshift/latest/mig-ocp.html"
+      notes: "OpenShift supports software-based GPU sharing via time-slicing and hardware-level partitioning via Multi-Instance GPU (MIG), both configured through the NVIDIA GPU Operator. The GPU Operator is not yet listed in OpenShift 5.0's default certified catalog; certified availability is pending."
+    - id: virtualized_accelerator
+      description: "For accelerators that support virtualized accelerator technologies (e.g. vGPU), provide well-defined mechanisms for these to be exposed and managed, maintaining consistency with physical fractional GPUs. Forward-looking: Once the accelerator supports virtualized accelerator technologies as part of DRA, then the platform should use the DRA mechanism."
+      level: SHOULD
+      status: "Implemented"
+      evidence:
+        - "https://docs.redhat.com/en/documentation/openshift_container_platform/5.0/html-single/hardware_accelerators/index#nvidia-gpu-virtualization_nvidia-gpu-architecture"
+        - "https://docs.nvidia.com/datacenter/cloud-native/openshift/latest/nvaie-with-ocp.html"
+      notes: "NVIDIA vGPU is supported on OpenShift through NVIDIA AI Enterprise with the NVIDIA GPU Operator, which exposes virtual GPU devices scheduled and managed consistently with physical GPUs. The GPU Operator is not yet listed in OpenShift 5.0's default certified catalog; certified availability is pending."
+  networking:
+    - id: ai_inference
+      description: "Support the Kubernetes Gateway API with an implementation for advanced traffic management for inference services, which enables capabilities like weighted traffic splitting, header-based routing (for OpenAI protocol headers), and optional integration with service meshes."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "https://docs.redhat.com/en/documentation/openshift_container_platform/5.0/html-single/ingress_and_load_balancing/index#routing-http-requests-to-services"
+        - "https://docs.redhat.com/en/documentation/openshift_container_platform/5.0/html/ingress_and_load_balancing/configuring-gateway-api"
+        - "https://docs.redhat.com/en/documentation/openshift_container_platform/5.0/html/network_apis/gateway-gateway-networking-k8s-io-v1"
+      notes: "OpenShift ships a built-in Gateway API implementation: creating a GatewayClass triggers the Ingress Operator to install a lightweight Istio control plane (based on Red Hat OpenShift Service Mesh) that serves Gateway API v1 resources (GatewayClass, Gateway, HTTPRoute), enabling weighted traffic splitting, header-based routing (HTTPRoute header matching and weighted backends), and service mesh integration for inference traffic."
+    # TODO: swap the evidence link below from RHOAI 3.3 to 3.6 once RHOAI 3.6
+    # GA's on OpenShift 5.0 (targeted 2026-12-02, RHAISTRAT-2125 / RHAI-16805).
+    - id: advanced_inference_ingress
+      description: "Support an implementation of the Gateway API Inference Extension (GAIE), which can route requests to models hosted on Kubernetes. The implementation supports serving LLMs and making advanced routing decisions (e.g., K/V cache-aware routing) based on metrics and capabilities advertised by the underlying model serving platform."
+      level: SHOULD
+      status: "Implemented"
+      evidence:
+        - "https://docs.redhat.com/en/documentation/red_hat_openshift_ai_self-managed/3.3/html-single/deploying_models/index#intelligent_inference_scheduler_with_kv_cache_routing"
+      notes: "The llm-d intelligent inference scheduler makes KV-cache-aware routing decisions for LLM inference requests. This is documented for Red Hat OpenShift AI 3.3; this combination is not yet validated/certified against OpenShift 5.0, which is targeted with Red Hat OpenShift AI 3.6 GA (2026-12-02, RHAISTRAT-2125 / RHAI-16805)."
+    - id: high_performance_networking
+      description: "If high performance pod-to-pod communication is needed, then provide well-defined mechanisms for these specialized network resources to be managed and exposed such that their characteristics should be discoverable to enable informed scheduling or workload configuration and to enable pods to attach to multiple network interfaces. Platforms should use DRA as the mechanism to manage and expose these specialized network resources (e.g., DRANET)."
+      level: SHOULD
+      status: "Implemented"
+      evidence:
+        - "https://docs.redhat.com/en/documentation/openshift_container_platform/5.0/html-single/networking_operators/index#installing-sriov-operator"
+        - "https://docs.redhat.com/en/documentation/openshift_container_platform/5.0/html-single/multiple_networks/index"
+      notes: "The SR-IOV Network Operator provisions SR-IOV-capable network devices and discoverable, schedulable network resources for pods, with Multus enabling pods to attach to multiple network interfaces."
+    # TODO: swap the evidence link below from RHOAI 3.3 to 3.6 once RHOAI 3.6
+    # GA's on OpenShift 5.0 (targeted 2026-12-02, RHAISTRAT-2125 / RHAI-16805).
+    - id: disaggregated_inference
+      description: "Support the deployment and operation of disaggregated inference architectures. To be conformant, the platform should demonstrate that it can successfully install and run a disaggregated inference solution (e.g., vLLM, SGLang, llm-d, or Dynamo, with separate instances for distinct phases like prefill and decode). Disaggregated serving splits phases such as prefill and decode into separately scalable components so each phase can match different compute/memory/network needs, improving GPU utilization and tail latency while enabling higher throughput under mixed and bursty LLM workloads."
+      level: SHOULD
+      status: "Implemented"
+      evidence:
+        - "https://docs.redhat.com/en/documentation/red_hat_openshift_ai_self-managed/3.3/html-single/deploying_models/index#deploying-models-using-distributed-inference_rhoai-user"
+      notes: "Red Hat OpenShift AI supports deploying models using Distributed Inference with llm-d, with separately scalable prefill/decode phases. This is documented for Red Hat OpenShift AI 3.3; this combination is not yet validated/certified against OpenShift 5.0, which is targeted with Red Hat OpenShift AI 3.6 GA (2026-12-02, RHAISTRAT-2125 / RHAI-16805)."
+  schedulingOrchestration:
+    - id: gang_scheduling
+      description: "The platform must allow for the installation and successful operation of at least one gang scheduling solution that ensures all-or-nothing scheduling for distributed AI workloads (e.g. Kueue, Volcano, etc.) To be conformant, the vendor must demonstrate that their platform can successfully run at least one such solution."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "https://docs.redhat.com/en/documentation/openshift_container_platform/5.0/html-single/ai_workloads/index#gangscheduling"
+        - "https://docs.redhat.com/en/documentation/openshift_container_platform/5.0/html/ai_workloads/red-hat-build-of-kueue"
+      notes: "Red Hat build of Kueue provides gang admission (all-or-nothing scheduling) for distributed AI workloads on OpenShift."
+    - id: cluster_autoscaling
+      description: "If the platform provides a cluster autoscaler or an equivalent mechanism, it must be able to scale up/down node groups containing specific accelerator types based on pending pods requesting those accelerators."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "https://docs.redhat.com/en/documentation/openshift_container_platform/5.0/html-single/machine_management/index#machineset-label-gpu-autoscaler_creating-machineset-aws"
+        - "https://docs.redhat.com/en/documentation/openshift_container_platform/5.0/html/machine_management/applying-autoscaling"
+      notes: "The OpenShift cluster autoscaler scales MachineSets containing GPU accelerators up and down based on pending pod resource requests, including scaling a dedicated accelerator node pool from zero. GPU MachineSets are labeled so the autoscaler can identify and scale the accelerator-specific node group."
+    # TODO: swap the RHOAI evidence link below from 3.3 to 3.6 once RHOAI 3.6
+    # GA's on OpenShift 5.0 (targeted 2026-12-02, RHAISTRAT-2125 / RHAI-16805).
+    - id: pod_autoscaling
+      description: "If the platform supports the HorizontalPodAutoscaler, it must function correctly for pods utilizing accelerators. This includes the ability to scale these Pods based on custom metrics relevant to AI/ML workloads."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "https://docs.redhat.com/en/documentation/openshift_container_platform/5.0/html-single/nodes/index#nodes-cma-autoscaling-custom"
+        - "https://docs.redhat.com/en/documentation/openshift_container_platform/5.0/html/nodes/automatically-scaling-pods-with-the-custom-metrics-autoscaler-operator"
+        - "https://docs.redhat.com/en/documentation/red_hat_openshift_ai_self-managed/3.3/html-single/managing_and_monitoring_models/index#configuring-metrics-based-autoscaling_cluster-admin"
+      notes: "The Custom Metrics Autoscaler Operator extends HorizontalPodAutoscaler to scale pods on custom and external metrics, including accelerator utilization metrics exposed by workloads. Red Hat OpenShift AI additionally provides metrics-based autoscaling on vLLM-specific metrics; this is documented for Red Hat OpenShift AI 3.3 and not yet validated/certified against OpenShift 5.0, which is targeted with Red Hat OpenShift AI 3.6 GA (2026-12-02, RHAISTRAT-2125 / RHAI-16805)."
+  observability:
+    - id: accelerator_metrics
+      description: "For supported accelerator types, the platform must allow for the installation and successful operation of at least one accelerator metrics solution that exposes fine-grained performance metrics via a standardized, machine-readable metrics endpoint. This must include a core set of metrics for per-accelerator utilization and memory usage. Additionally, other relevant metrics such as temperature, power draw, and interconnect bandwidth should be exposed if the underlying hardware or virtualization layer makes them available. The list of metrics should align with emerging standards, such as OpenTelemetry metrics, to ensure interoperability. The platform may provide a managed solution, but this is not required for conformance."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "https://docs.redhat.com/en/documentation/openshift_container_platform/5.0/html-single/hardware_accelerators/index#nvidia-gpu-architecture"
+        - "https://docs.nvidia.com/datacenter/cloud-native/openshift/latest/enable-gpu-monitoring-dashboard.html"
+      notes: "The NVIDIA GPU Operator integrates DCGM-based monitoring, exposing GPU utilization, memory, temperature, power, and interconnect metrics via a Prometheus-compatible endpoint. The GPU Operator is not yet listed in OpenShift 5.0's default certified catalog; certified availability is pending."
+    - id: ai_service_metrics
+      description: "Provide a monitoring system capable of discovering and collecting metrics from workloads that expose them in a standard format (e.g. Prometheus exposition format). This ensures easy integration for collecting key metrics from common AI frameworks and servers."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "https://docs.redhat.com/en/documentation/monitoring_stack_for_red_hat_openshift/5.0/html-single/configuring_user_workload_monitoring/index#specifying-how-a-service-is-monitored_configuring-metrics-uwm"
+      notes: "OpenShift provides an integrated monitoring stack based on Prometheus that discovers and scrapes metrics endpoints exposed by workloads in the standard Prometheus exposition format, via user-defined ServiceMonitor/PodMonitor resources."
+  security:
+    - id: secure_accelerator_access
+      description: "Ensure that access to accelerators from within containers is properly isolated and mediated by the Kubernetes resource management framework (device plugin or DRA) and container runtime, preventing unauthorized access or interference between workloads."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "https://docs.redhat.com/en/documentation/openshift_container_platform/5.0/html-single/hardware_accelerators/index#about-hardware-accelerators"
+        - "https://docs.nvidia.com/datacenter/cloud-native/openshift/latest/install-gpu-ocp.html"
+      notes: "GPU access is mediated by the Kubernetes device-plugin/DRA resource framework and the NVIDIA Container Toolkit's cgroup-based device isolation, so a container is confined to only the accelerator device(s) it was granted. The GPU Operator is not yet listed in OpenShift 5.0's default certified catalog; certified availability is pending."
+  operator:
+    # TODO: swap the evidence link below from RHOAI 3.3 to 3.6 once RHOAI 3.6
+    # GA's on OpenShift 5.0 (targeted 2026-12-02, RHAISTRAT-2125 / RHAI-16805).
+    - id: robust_controller
+      description: "The platform must prove that at least one complex AI operator with a CRD (e.g., Ray, Kubeflow) can be installed and functions reliably. This includes verifying that the operator's pods run correctly, its webhooks are operational, and its custom resources can be reconciled."
+      level: MUST
+      status: "Implemented"
+      evidence:
+        - "https://docs.redhat.com/en/documentation/red_hat_openshift_ai_self-managed/3.3/html-single/working_with_distributed_workloads/index#running-kubeflow-trainerv2_distributed-workloads"
+      notes: "Kubeflow Trainer v2 is documented for Red Hat OpenShift AI 3.3. This combination is not yet validated/certified against OpenShift 5.0; certified availability is targeted with Red Hat OpenShift AI 3.6 GA (2026-12-02, RHAISTRAT-2125 / RHAI-16805)."
