@@ -1,0 +1,85 @@
+# High-performance networking: RDMA devices exposed through DRA
+# Captured 2026-11-10T17:46:59Z from the cluster used for the AI conformance run.
+
+$ kubectl version
+Client Version: v1.37.2
+Kustomize Version: v5.8.1
+Server Version: v1.37.2
+
+$ kubectl get nodes
+NAME                                                          STATUS   ROLES    AGE   VERSION
+nks-abc37878-8eef-4679-8cb6-129f35155d4c-placement-0          Ready    <none>   48m   v1.37.2
+nks-abc37878-8eef-4679-8cb6-129f35155d4c-placement-1          Ready    <none>   48m   v1.37.2
+nks-bec241b0-6030-4267-9bcb-5d8d315d1cbf-x4g8w-5mlgv-worker   Ready    <none>   71m   v1.37.2
+nks-bec241b0-6030-4267-9bcb-5d8d315d1cbf-x4g8w-nz76v-worker   Ready    <none>   71m   v1.37.2
+nks-bec241b0-6030-4267-9bcb-5d8d315d1cbf-x4g8w-pxfqg-worker   Ready    <none>   71m   v1.37.2
+
+$ kubectl get pods -n nvidia-platform -l app.kubernetes.io/name=dranet -o custom-columns=POD:.metadata.name,NODE:.spec.nodeName,STATUS:.status.phase,IMAGE:.spec.containers[0].image
+POD                            NODE                                                          STATUS    IMAGE
+nvidia-platform-dranet-9t4mh   nks-abc37878-8eef-4679-8cb6-129f35155d4c-placement-1          Running   registry.k8s.io/networking/dranet:v1.5.0
+nvidia-platform-dranet-m2696   nks-bec241b0-6030-4267-9bcb-5d8d315d1cbf-x4g8w-5mlgv-worker   Running   registry.k8s.io/networking/dranet:v1.5.0
+nvidia-platform-dranet-n4txc   nks-abc37878-8eef-4679-8cb6-129f35155d4c-placement-0          Running   registry.k8s.io/networking/dranet:v1.5.0
+nvidia-platform-dranet-x4twl   nks-bec241b0-6030-4267-9bcb-5d8d315d1cbf-x4g8w-nz76v-worker   Running   registry.k8s.io/networking/dranet:v1.5.0
+nvidia-platform-dranet-xhkzc   nks-bec241b0-6030-4267-9bcb-5d8d315d1cbf-x4g8w-pxfqg-worker   Running   registry.k8s.io/networking/dranet:v1.5.0
+
+$ kubectl get deviceclasses
+NAME                                        AGE
+compute-domain-daemon.nvidia.com            70m
+compute-domain-default-channel.nvidia.com   70m
+gpu.nvidia.com                              70m
+mig.nvidia.com                              70m
+rdma.nscale.com                             71m
+vfio.gpu.nvidia.com                         70m
+
+$ kubectl get deviceclass rdma.nscale.com -o json | jq .spec
+{
+  "selectors": [
+    {
+      "cel": {
+        "expression": "device.driver == \"dra.net\" && device.attributes[\"dra.net\"].rdma == true\n"
+      }
+    },
+    {
+      "cel": {
+        "expression": "!device.attributes[\"dra.net\"].pciAddress.startsWith(\"0000:bb:00.\")\n"
+      }
+    }
+  ]
+}
+
+$ kubectl get resourceslices -o json | jq <dra.net devices and their published attributes>
+NODE                                                         DEVICE                    ifName        type   encapsulation  rdma   rdmaDevice  pciAddress    pciVendor              numaNode  mtu   sriov  virtual  PCIE_ROOT
+nks-abc37878-8eef-4679-8cb6-129f35155d4c-placement-1         net-mnuwy2lvnvpxm6dmmfxa  cilium_vxlan  vxlan  ether          false  -           -             -                      -         9000  false  true     -
+nks-abc37878-8eef-4679-8cb6-129f35155d4c-placement-1         pci-0000-19-00-0          ibs1          ipoib  infiniband     true   mlx5_0      0000:19:00.0  Mellanox Technologies  0         4092  true   false    pci0000:15
+nks-abc37878-8eef-4679-8cb6-129f35155d4c-placement-1         pci-0000-2a-00-0          ibs2          ipoib  infiniband     true   mlx5_1      0000:2a:00.0  Mellanox Technologies  0         4092  true   false    pci0000:26
+nks-abc37878-8eef-4679-8cb6-129f35155d4c-placement-1         pci-0000-3b-00-0          ibs3          ipoib  infiniband     true   mlx5_2      0000:3b:00.0  Mellanox Technologies  0         4092  true   false    pci0000:37
+nks-abc37878-8eef-4679-8cb6-129f35155d4c-placement-1         pci-0000-4c-00-0          ibs4          ipoib  infiniband     true   mlx5_3      0000:4c:00.0  Mellanox Technologies  0         4092  true   false    pci0000:48
+nks-abc37878-8eef-4679-8cb6-129f35155d4c-placement-1         pci-0000-9b-00-0          ibs5          ipoib  infiniband     true   mlx5_4      0000:9b:00.0  Mellanox Technologies  1         4092  true   false    pci0000:97
+nks-abc37878-8eef-4679-8cb6-129f35155d4c-placement-1         pci-0000-ab-00-0          ibs6          ipoib  infiniband     true   mlx5_5      0000:ab:00.0  Mellanox Technologies  1         4092  true   false    pci0000:a7
+nks-abc37878-8eef-4679-8cb6-129f35155d4c-placement-1         pci-0000-bb-00-0          ibs255f0      ipoib  infiniband     true   mlx5_6      0000:bb:00.0  Mellanox Technologies  1         4092  true   false    pci0000:b7
+nks-abc37878-8eef-4679-8cb6-129f35155d4c-placement-1         pci-0000-bb-00-1          ibs255f1      ipoib  infiniband     true   mlx5_7      0000:bb:00.1  Mellanox Technologies  1         4092  true   false    pci0000:b7
+nks-abc37878-8eef-4679-8cb6-129f35155d4c-placement-1         pci-0000-bb-00-2          ibs255f2      ipoib  infiniband     true   mlx5_8      0000:bb:00.2  Mellanox Technologies  1         4092  true   false    pci0000:b7
+nks-abc37878-8eef-4679-8cb6-129f35155d4c-placement-1         pci-0000-bb-00-3          ibs255f3      ipoib  infiniband     true   mlx5_9      0000:bb:00.3  Mellanox Technologies  1         4092  true   false    pci0000:b7
+nks-abc37878-8eef-4679-8cb6-129f35155d4c-placement-1         pci-0000-bc-00-0          ibs7          ipoib  infiniband     true   mlx5_10     0000:bc:00.0  Mellanox Technologies  1         4092  true   false    pci0000:b7
+nks-abc37878-8eef-4679-8cb6-129f35155d4c-placement-1         pci-0000-cb-00-0          ibs8          ipoib  infiniband     true   mlx5_11     0000:cb:00.0  Mellanox Technologies  1         4092  true   false    pci0000:c7
+nks-abc37878-8eef-4679-8cb6-129f35155d4c-placement-0         net-mnuwy2lvnvpxm6dmmfxa  cilium_vxlan  vxlan  ether          false  -           -             -                      -         9000  false  true     -
+nks-abc37878-8eef-4679-8cb6-129f35155d4c-placement-0         pci-0000-19-00-0          ibs1          ipoib  infiniband     true   mlx5_0      0000:19:00.0  Mellanox Technologies  0         4092  true   false    pci0000:15
+nks-abc37878-8eef-4679-8cb6-129f35155d4c-placement-0         pci-0000-2a-00-0          ibs2          ipoib  infiniband     true   mlx5_1      0000:2a:00.0  Mellanox Technologies  0         4092  true   false    pci0000:26
+nks-abc37878-8eef-4679-8cb6-129f35155d4c-placement-0         pci-0000-3b-00-0          ibs3          ipoib  infiniband     true   mlx5_2      0000:3b:00.0  Mellanox Technologies  0         4092  true   false    pci0000:37
+nks-abc37878-8eef-4679-8cb6-129f35155d4c-placement-0         pci-0000-4c-00-0          ibs4          ipoib  infiniband     true   mlx5_3      0000:4c:00.0  Mellanox Technologies  0         4092  true   false    pci0000:48
+nks-abc37878-8eef-4679-8cb6-129f35155d4c-placement-0         pci-0000-9b-00-0          ibs5          ipoib  infiniband     true   mlx5_4      0000:9b:00.0  Mellanox Technologies  1         4092  true   false    pci0000:97
+nks-abc37878-8eef-4679-8cb6-129f35155d4c-placement-0         pci-0000-ab-00-0          ibs6          ipoib  infiniband     true   mlx5_5      0000:ab:00.0  Mellanox Technologies  1         4092  true   false    pci0000:a7
+nks-abc37878-8eef-4679-8cb6-129f35155d4c-placement-0         pci-0000-bb-00-0          ibs255f0      ipoib  infiniband     true   mlx5_6      0000:bb:00.0  Mellanox Technologies  1         4092  true   false    pci0000:b7
+nks-abc37878-8eef-4679-8cb6-129f35155d4c-placement-0         pci-0000-bb-00-1          ibs255f1      ipoib  infiniband     true   mlx5_7      0000:bb:00.1  Mellanox Technologies  1         4092  true   false    pci0000:b7
+nks-abc37878-8eef-4679-8cb6-129f35155d4c-placement-0         pci-0000-bb-00-2          ibs255f2      ipoib  infiniband     true   mlx5_8      0000:bb:00.2  Mellanox Technologies  1         4092  true   false    pci0000:b7
+nks-abc37878-8eef-4679-8cb6-129f35155d4c-placement-0         pci-0000-bb-00-3          ibs255f3      ipoib  infiniband     true   mlx5_9      0000:bb:00.3  Mellanox Technologies  1         4092  true   false    pci0000:b7
+nks-abc37878-8eef-4679-8cb6-129f35155d4c-placement-0         pci-0000-bc-00-0          ibs7          ipoib  infiniband     true   mlx5_10     0000:bc:00.0  Mellanox Technologies  1         4092  true   false    pci0000:b7
+nks-abc37878-8eef-4679-8cb6-129f35155d4c-placement-0         pci-0000-cb-00-0          ibs8          ipoib  infiniband     true   mlx5_11     0000:cb:00.0  Mellanox Technologies  1         4092  true   false    pci0000:c7
+nks-bec241b0-6030-4267-9bcb-5d8d315d1cbf-x4g8w-pxfqg-worker  net-mnuwy2lvnvpxm6dmmfxa  cilium_vxlan  vxlan  ether          false  -           -             -                      -         9000  false  true     -
+nks-bec241b0-6030-4267-9bcb-5d8d315d1cbf-x4g8w-nz76v-worker  net-mnuwy2lvnvpxm6dmmfxa  cilium_vxlan  vxlan  ether          false  -           -             -                      -         9000  false  true     -
+nks-bec241b0-6030-4267-9bcb-5d8d315d1cbf-x4g8w-5mlgv-worker  net-mnuwy2lvnvpxm6dmmfxa  cilium_vxlan  vxlan  ether          false  -           -             -                      -         9000  false  true     -
+
+# Devices per node that match the rdma.nscale.com selectors
+# (driver dra.net, rdma == true, pciAddress not under 0000:bb:00.)
+nks-abc37878-8eef-4679-8cb6-129f35155d4c-placement-0  8  ibs1,ibs2,ibs3,ibs4,ibs5,ibs6,ibs7,ibs8
+nks-abc37878-8eef-4679-8cb6-129f35155d4c-placement-1  8  ibs1,ibs2,ibs3,ibs4,ibs5,ibs6,ibs7,ibs8
